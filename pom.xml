@@ -1,0 +1,95 @@
+<!--
+  Copyright (C) 2012 Turn, Inc.
+  All Rights Reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+
+  - Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+  - Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+  - Neither the name Turn, Inc. nor the names of its contributors may be used
+    to endorse or promote products derived from this software without specific
+    prior written permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+ -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <name>FusionIO KV API Java binding</name>
+  <url>http://turn.github.com/fiokv-java</url>
+  <groupId>com.turn.fusionio</groupId>
+  <artifactId>fiokv-java</artifactId>
+  <version>0.3.1</version>
+  <packaging>pom</packaging>
+
+  <organization>
+    <name>Turn, Inc.</name>
+    <url>http://www.turn.com</url>
+  </organization>
+
+  <scm>
+    <connection>scm:git:git://github.com/turn/fiokv-java.git</connection>
+    <url>http://github.com/turn/fiokv-java</url>
+  </scm>
+
+  <licenses>
+    <license>
+      <name>BSD 3-clause license</name>
+      <url>http://opensource.org/licenses/bsd-3-clause</url>
+    </license>
+  </licenses>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>http://github.com/turn/fiokv-java/issues</url>
+  </issueManagement>
+
+  <developers>
+    <developer>
+      <id>mpetazzoni</id>
+      <name>Maxime Petazzoni</name>
+      <email>mpetazzoni@turn.com</email>
+      <url>http://www.bulix.org</url>
+      <organization>Turn, Inc.</organization>
+      <organizationUrl>http://www.turn.com</organizationUrl>
+      <roles>
+        <role>maintainer</role>
+        <role>developer</role>
+      </roles>
+      <timezone>-8</timezone>
+      <properties>
+        <picUrl>https://secure.gravatar.com/avatar/6f705e0c299bca294444de3a6a3308b3</picUrl>
+      </properties>
+    </developer>
+  </developers>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <modules>
+    <module>helper</module>
+  </modules>
+
+  <build>
+    <defaultGoal>package</defaultGoal>
+  </build>
+</project>
