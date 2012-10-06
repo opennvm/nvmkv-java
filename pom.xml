@@ -87,6 +87,7 @@
 
   <modules>
     <module>helper</module>
+    <module>api</module>
   </modules>
 
   <build>
