@@ -53,6 +53,9 @@
 
   <build>
     <plugins>
+
+      <!-- The helper library is built using the Native Maven plugin. That's
+        all that is needed here to create the target .so shared library. -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>native-maven-plugin</artifactId>

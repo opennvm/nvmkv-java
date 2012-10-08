@@ -39,85 +39,49 @@
     <version>0.3.1</version>
   </parent>
 
-  <name>FusionIO KV API Java binding API</name>
+  <name>FusionIO KV API Java binding distribution</name>
   <url>http://turn.github.com/fiokv-java</url>
   <groupId>com.turn.fusionio</groupId>
-  <artifactId>fiokv-java-api</artifactId>
+  <artifactId>fiokv-java-dist</artifactId>
   <version>0.3.1</version>
-  <packaging>jar</packaging>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-    <!-- Tests are disabled by default because they are intrusive to the
-      device's data. -->
-    <tests.disable>true</tests.disable>
-  </properties>
+  <packaging>pom</packaging>
 
   <dependencies>
-    <dependency>
-      <groupId>com.turn.fusionio</groupId>
-      <artifactId>libfio_kv_helper</artifactId>
-      <version>${project.version}</version>
-      <type>so</type>
-    </dependency>
+     <dependency>
+       <groupId>com.turn.fusionio</groupId>
+       <artifactId>libfio_kv_helper</artifactId>
+       <version>${project.version}</version>
+       <type>so</type>
+     </dependency>
 
-    <dependency>
-      <groupId>net.java.dev.jna</groupId>
-      <artifactId>jna</artifactId>
-      <version>3.4.0</version>
-      <type>jar</type>
-    </dependency>
-
-    <dependency>
-      <groupId>org.testng</groupId>
-      <artifactId>testng</artifactId>
-      <version>6.1.1</version>
-      <type>jar</type>
-      <scope>test</scope>
-    </dependency>
+     <dependency>
+       <groupId>com.turn.fusionio</groupId>
+       <artifactId>fiokv-java-api</artifactId>
+       <version>${project.version}</version>
+       <type>jar</type>
+     </dependency>
   </dependencies>
 
   <build>
-    <defaultGoal>package</defaultGoal>
-
     <plugins>
-      <!-- Maven Compiler plugin to build the Java source code. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.3.2</version>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.3</version>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <descriptors>
+            <descriptor>src/assemble/dist.xml</descriptor>
+          </descriptors>
         </configuration>
-      </plugin>
-
-      <!-- Maven Surefire plugin to execute the tests (if
-        tests.disabled=false). -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.12.4</version>
-        <configuration>
-          <skipTests>${tests.disable}</skipTests>
-          <environmentVariables>
-            <LD_LIBRARY_PATH>${project.basedir}/../helper/target</LD_LIBRARY_PATH>
-          </environmentVariables>
-        </configuration>
-      </plugin>
-
-      <!-- Maven JAR plugin to create the target JAR with the FusionIO Java
-        API. -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <includes>
-            <include>**</include>
-          </includes>
-        </configuration>
+        <executions>
+          <execution>
+            <id>dist-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -56,14 +56,15 @@ the top-level `pom.xml` so you can simply run:
 $ mvn
 ```
 
-To build everything. For now, the build outputs are:
+To build everything. The build outputs will be placed in
+`dist/target/fiokv-java-dist-<version>-bin/`:
 
-* `api/target/libfio_kv_helper-<version>.so`, the C shared library
-* `api/target/fiokv-java-api-<version>.jar`, the Java binding
+* `libfio_kv_helper-<version>.so`, the C shared library
+* `fiokv-java-api-<version>.jar`, the Java binding
 
-The JNA depedency is also copied into the `target` folder if you need it:
-
-* `api/target/jna-3.4.0.jar`, the JNA library
+If you use these outputs in a non-Maven project, don't forget to grab the
+appropriate version of the JNA library JAR (check the dependency version in
+`api/pom.xml`) and place it in your classpath.
 
 
 Usage

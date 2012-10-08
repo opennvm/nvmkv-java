@@ -88,9 +88,23 @@
   <modules>
     <module>helper</module>
     <module>api</module>
+    <module>dist</module>
   </modules>
 
   <build>
     <defaultGoal>package</defaultGoal>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.3</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/assemble/dist.xml</descriptor>
+          </descriptors>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 </project>
