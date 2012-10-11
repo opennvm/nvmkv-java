@@ -41,9 +41,7 @@
 
   <name>FusionIO KV API Java binding distribution</name>
   <url>http://turn.github.com/fiokv-java</url>
-  <groupId>com.turn.fusionio</groupId>
   <artifactId>fiokv-java-dist</artifactId>
-  <version>0.3.1</version>
   <packaging>pom</packaging>
 
   <dependencies>
