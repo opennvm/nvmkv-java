@@ -98,10 +98,6 @@ public class FusionIOAPI {
 	 * @throws UnsupportedOperationException If FusionIO storage is disabled.
 	 */
 	public FusionIOAPI(String device, int poolId) {
-		if (instance == null) {
-			throw new UnsupportedOperationException("FusionIO storage is not enabled.");
-		}
-
 		this.device = device;
 		this.poolId = poolId;
 		this.store = null;
@@ -165,19 +161,54 @@ public class FusionIOAPI {
 	 *
 	 * @param key The key.
 	 * @param value The value to write for that key.
-	 * @param exiry The desired expiry of this key/value pair, in seconds.
 	 * @throws FusionIOException If an error occurred while writing this
-	 * key/value pair to the store. Would that occur, any existing key/value
-	 * pair for that key is removed (even if one existed before) to make sure
-	 * we don't leave partial values or invalid data in the key/value store.
+	 *	key/value pair to the store.
 	 */
-	public void put(Key key, Value value, int expiry) throws FusionIOException {
+	public void put(Key key, Value value) throws FusionIOException {
 		this.open();
 
-		value.info.expiry = expiry;
+		if (value.data == null) {
+			throw new IllegalArgumentException("Value is not allocated!");
+		}
+
 		if (instance.fio_kv_put(this.store, key, value) != value.info.value_len) {
-			this.remove(key);
 			throw new FusionIOException("Error writing key/value pair!");
+		}
+	}
+
+	/**
+	 * Inserts or updates a set of key/value pairs into the key/value store in
+	 * one batch operation.
+	 *
+	 * <p>
+	 * It is the responsibility of the caller to manage the memory used by the
+	 * {@link Value} object, in particular calling {@link Value.free()} to free
+	 * the sector-aligned memory allocated on the native side by {@link
+	 * Value.allocate()}.
+	 * </p>
+	 *
+	 * <p>
+	 * Note that if a pair already exists for the same key, it will be
+	 * overwritten.
+	 * </p>
+	 *
+	 * @param keys The array of keys.
+	 * @param values An array of corresponding values.
+	 * @throws FusionIOException If an error occurred while writing this
+	 *	key/value pairs batch.
+	 */
+	public void put(Key[] keys, Value[] values) throws FusionIOException {
+		this.open();
+
+		if (keys.length == 0 || keys.length != values.length) {
+			throw new IllegalArgumentException("Invalid batch size!");
+		}
+
+		if (!instance.fio_kv_batch_put(this.store,
+				keys[0].getPointer(),
+				values[0].getPointer(),
+				keys.length)) {
+			throw new FusionIOException("Error writing key/value pair batch!");
 		}
 	}
 
@@ -196,14 +227,25 @@ public class FusionIOAPI {
 	/**
 	 * Retrieve a value from the key/value store.
 	 *
+	 * <p>
+	 * It is the responsibility of the caller to manage the memory used by the
+	 * {@link Value} object, in particular calling {@link Value.free()} to free
+	 * the sector-aligned memory allocated on the native side by {@link
+	 * Value.allocate()}.
+	 * </p>
+	 *
 	 * @param key The key of the pair to retrieve.
 	 * @param value The value to read into. It must be obtained with {@link
-	 * Value.allocate()} so that the memory holding the pair data is
+	 *	Value.allocate()} so that the memory holding the pair data is
 	 *	sector-aligned.
 	 * @throws FusionIOException If an error occurred while retrieving the data.
 	 */
 	public void get(Key key, Value value) throws FusionIOException {
 		this.open();
+
+		if (value.data == null) {
+			throw new IllegalArgumentException("Value is not allocated!");
+		}
 
 		if (!this.exists(key)) {
 			return;
@@ -215,17 +257,67 @@ public class FusionIOAPI {
 	}
 
 	/**
+	 * Retrieve a set of values from the key/value store.
+	 *
+	 * <p>
+	 * It is the responsibility of the caller to manage the memory used by each
+	 * {@link Value} object, in particular calling {@link Value.free()} to free
+	 * the sector-aligned memory allocated on the native side by {@link
+	 * Value.allocate()}.
+	 * </p>
+	 *
+	 * @param keys The set of keys for the pairs to retrieve.
+	 * @param value An array of allocated {@link Value} objects to read each
+	 *	value into.
+	 * @throws FusionIOException If an error occurred while retrieving the data.
+	 */
+	public void get(Key[] keys, Value[] values) throws FusionIOException {
+		this.open();
+
+		if (keys.length == 0 || keys.length != values.length) {
+			throw new IllegalArgumentException("Invalid batch size!");
+		}
+
+		if (!instance.fio_kv_batch_get(this.store,
+				keys[0].getPointer(),
+				values[0].getPointer(),
+				keys.length)) {
+			throw new FusionIOException("Error reading key/value pair batch!");
+		}
+	}
+
+	/**
 	 * Remove a key/value pair.
 	 *
 	 * @param key The key of the pair to remove.
 	 * @throws FusionIOException If the pair could not be removed because of a
-	 * low-level API error.
+	 *	low-level API error.
 	 */
 	public void remove(Key key) throws FusionIOException {
 		this.open();
 
 		if (!instance.fio_kv_delete(this.store, key)) {
 			throw new FusionIOException("Error removing key/value pair!");
+		}
+	}
+
+	/**
+	 * Remove a set of key/value pairs in one batch operation.
+	 *
+	 * @param keys The keys of the pairs to remove.
+	 * @throws FusionIOException If the batch operation was not successful.
+	 */
+	public void remove(Key[] keys) throws FusionIOException {
+		this.open();
+
+		if (keys.length == 0) {
+			throw new IllegalArgumentException("Invalid batch size!");
+		}
+
+		if (!instance.fio_kv_batch_delete(this.store,
+				keys[0].getPointer(),
+				keys.length)) {
+			throw new FusionIOException("Error removing key/value pair batch!");
 		}
 	}
 
@@ -257,6 +349,12 @@ public class FusionIOAPI {
 		public int fio_kv_put(Store store, Key key, Value value);
 		public boolean fio_kv_exists(Store store, Key key);
 		public boolean fio_kv_delete(Store store, Key key);
+		public boolean fio_kv_batch_get(Store store, Pointer keys,
+			Pointer values, int count);
+		public boolean fio_kv_batch_put(Store store, Pointer keys,
+			Pointer values, int count);
+		public boolean fio_kv_batch_delete(Store store, Pointer keys,
+			int count);
 	};
 
 	/**
@@ -276,8 +374,8 @@ public class FusionIOAPI {
 			try {
 				Native.register(LIBRARY_NAME);
 			} catch (Exception e) {
-				System.err.println("Could not initialize FusionIO binding: " +
-					e.getMessage());
+				System.err.println("Could not initialize FusionIO binding!");
+				e.printStackTrace(System.err);
 			}
 		};
 
@@ -289,6 +387,12 @@ public class FusionIOAPI {
 		public native int fio_kv_get(Store store, Key key, Value value);
 		public native boolean fio_kv_exists(Store store, Key key);
 		public native boolean fio_kv_delete(Store store, Key key);
+		public native boolean fio_kv_batch_get(Store store, Pointer keys,
+			Pointer values, int count);
+		public native boolean fio_kv_batch_put(Store store, Pointer keys,
+			Pointer values, int count);
+		public native boolean fio_kv_batch_delete(Store store, Pointer keys,
+			int count);
 	};
 
 	/**
@@ -350,6 +454,11 @@ public class FusionIOAPI {
 			this.setFieldOrder(FIELD_ORDER);
 		}
 
+		/**
+		 * Get this {@link Key} as a long.
+		 *
+		 * @return The value held by this key, interpreted as a long.
+		 */
 		public long longValue() {
 			if (this.length != 8) {
 				throw new IllegalStateException("Key is not a long!");
@@ -359,17 +468,37 @@ public class FusionIOAPI {
 		}
 
 		/**
-		 * Create a new {@link Key} object from a long value.
+		 * Set this {@link Key} to the given long ID.
+		 *
+		 * @param uid The key ID, as a long value.
+		 * @return Returns the {@link Key} object, for chaining.
+		 */
+		public Key set(long uid) {
+			this.length = 8;
+			this.bytes = new Memory(this.length);
+			this.bytes.setLong(0, uid);
+			this.write();
+			return this;
+		}
+
+		/**
+		 * Create a new {@link Key} for the given long ID.
 		 *
 		 * @param uid The key ID, as a long.
-		 * @return Returns a constructed {@link Key} object for that UID value.
+		 * @return Returns the constructed {@link Key} object for that UID value.
 		 */
 		public static Key get(long uid) {
-			Key k = new Key();
-			k.length = 8;
-			k.bytes = new Memory(k.length);
-			k.bytes.setLong(0, uid);
-			return k;
+			return new Key().set(uid);
+		}
+
+		/**
+		 * Retrieve a contiguous array of {@link Key} structures suitable for
+		 * passing to the native side.
+		 *
+		 * @param length The number of elements in the array.
+		 */
+		public static Key[] array(int length) {
+			return (Key[]) new Key().toArray(length);
 		}
 	};
 
@@ -386,7 +515,7 @@ public class FusionIOAPI {
 	 */
 	public static class Value extends Structure {
 
-		private static final String[] FIELD_ORDER = new String[] {"data", "info"};
+		private static final String[] FIELD_ORDER = new String[] {"data", "info", "len"};
 
 		/** A {@link Pointer} to the memory holding the value. */
 		public Pointer data;
@@ -406,7 +535,7 @@ public class FusionIOAPI {
 		 * Return this value's data as a {@link ByteBuffer}.
 		 *
 		 * @return Returns a {@link ByteBuffer} object mapping to the native
-		 * memory allocated for this value's data.
+		 *	memory allocated for this value's data.
 		 */
 		public ByteBuffer getByteBuffer() {
 			return this.data != null && this.info != null
@@ -415,14 +544,51 @@ public class FusionIOAPI {
 		}
 
 		/**
-		 * Free the native memory used by this value's data.
+		 * Allocate sector-aligned memory to hold this value's content.
+		 *
+		 * @param size The memory size, in bytes.
+		 * @return Returns the {@link Value} object, for chaining.
 		 */
-		public void free() {
-			instance.fio_kv_free_value(this);
+		public Value allocate(int size) {
+			if (this.data != null) {
+				throw new IllegalStateException("Value is already allocated!");
+			}
+
+			this.data = instance.fio_kv_alloc(size);
+			this.info = new KeyValueInfo();
+			this.info.value_len = size;
+			this.write();
+			return this;
 		}
 
 		/**
-		 * Creates a new {@link Value} object with allocated memory to hold its
+		 * Set the expiration delay for this value, in seconds.
+		 *
+		 * @param expiry The expiry delay in seconds.
+		 * @return Returns thi {@link Value} object, for chaining.
+		 */
+		public Value setExpiry(int expiry) {
+			if (this.info == null) {
+				throw new IllegalStateException("Value is not allocated!");
+			}
+
+			this.info.expiry = expiry;
+			return this;
+		}
+
+		/**
+		 * Free the native memory used by this value's data.
+		 *
+		 * @return Returns the {@link Value} object, for chaining.
+		 */
+		public Value free() {
+			instance.fio_kv_free_value(this);
+			this.info = null;
+			return this;
+		}
+
+		/**
+		 * Initializes this {@link Value} object with allocated memory to hold its
 		 * data.
 		 *
 		 * <p>
@@ -434,14 +600,20 @@ public class FusionIOAPI {
 		 *
 		 * @param size The size, in bytes, to allocate for.
 		 * @return Returns a ready-to-use {@link Value} object with allocated
-		 * memory.
+		 *	memory.
 		 */
-		public static Value allocate(int size) {
-			Value v = new Value();
-			v.data = instance.fio_kv_alloc(size);
-			v.info = new KeyValueInfo();
-			v.info.value_len = size;
-			return v;
+		public static Value get(int size) {
+			return new Value().allocate(size);
+		}
+
+		/**
+		 * Retrieve a contiguous array of {@link Value} structures suitable for
+		 * passing to the native side.
+		 *
+		 * @param length The number of elements in the array.
+		 */
+		public static Value[] array(int length) {
+			return (Value[]) new Value().toArray(length);
 		}
 	};
 
@@ -460,7 +632,8 @@ public class FusionIOAPI {
 			implements Structure.ByReference {
 
 		private static final String[] FIELD_ORDER =
-			new String[] {"pool_id", "key_len", "value_len", "expiry", "gen_count"};
+			new String[] {"pool_id", "key_len", "value_len", "expiry",
+				"gen_count"};
 
 		/** The pool ID the mapping was read from. */
 		public int pool_id;
@@ -482,7 +655,6 @@ public class FusionIOAPI {
 			this.setFieldOrder(FIELD_ORDER);
 		}
 	};
-
 
 	/**
 	 * Exception class for low-level FusionIO API errors.

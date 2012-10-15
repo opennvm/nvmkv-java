@@ -54,7 +54,13 @@ import org.testng.annotations.Test;
 @Test
 public class FusionIOAPITest {
 
-	private static final Key TEST_UID = Key.get(42L);;
+	private static final int BATCH_SIZE = 10;
+	private static final int BIG_VALUE_SIZE = 4096;
+
+	private static final Key[] TEST_KEYS = Key.array(BATCH_SIZE);
+	private static final Value[] TEST_VALUES = Value.array(BATCH_SIZE);
+	private static final Value[] TEST_READBACK = Value.array(BATCH_SIZE);
+
 	private static final byte[] TEST_DATA = new byte[] {
 		// hello, world
 		0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x00
@@ -65,16 +71,29 @@ public class FusionIOAPITest {
 	@BeforeClass
 	public void setUp() throws FusionIOException {
 		this.api = new FusionIOAPI("/dev/fct0", 0);
+		for (int i=0; i<BATCH_SIZE; i++) {
+			TEST_KEYS[i].set(i);
+			TEST_VALUES[i].allocate(TEST_DATA.length);
+			TEST_VALUES[i].getByteBuffer().put(TEST_DATA);
+		}
 	}
 
 	@BeforeMethod
 	public void clean() throws FusionIOException {
-		this.api.remove(TEST_UID);
+		this.api.remove(TEST_KEYS);
+		for (int i=0; i<BATCH_SIZE; i++) {
+			TEST_READBACK[i].free();
+			TEST_READBACK[i].allocate(TEST_DATA.length);
+		}
 	}
 
 	@AfterClass
 	public void tearDown() throws FusionIOException {
 		this.api.close();
+		for (int i=0; i<BATCH_SIZE; i++) {
+			TEST_VALUES[i].free();
+			TEST_READBACK[i].free();
+		}
 	}
 
 	public void testOpenClose() throws FusionIOException {
@@ -87,57 +106,67 @@ public class FusionIOAPITest {
 	}
 
 	public void testPut() throws FusionIOException {
-		Value value = Value.allocate(TEST_DATA.length);
-		value.getByteBuffer().put(TEST_DATA);
-		this.api.put(TEST_UID, value, 60);
-		assert this.api.exists(TEST_UID)
+		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.api.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 	}
 
 	public void testGet() throws FusionIOException {
-		Value value = Value.allocate(TEST_DATA.length);
-		value.getByteBuffer().put(TEST_DATA);
-		this.validatePutGetFlow(TEST_UID, value);
+		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.api.exists(TEST_KEYS[0])
+			: "Key/value mapping should exist";
+		this.api.get(TEST_KEYS[0], TEST_READBACK[0]);
+		assert TEST_VALUES[0].getByteBuffer()
+				.equals(TEST_READBACK[0].getByteBuffer())
+			: "Value data does not match";
 	}
 
 	public void testRemove() throws FusionIOException {
-		Value value = Value.allocate(TEST_DATA.length);
-		value.getByteBuffer().put(TEST_DATA);
-		this.api.put(TEST_UID, value, 60);
-		assert this.api.exists(TEST_UID)
+		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.api.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 
-		this.api.remove(TEST_UID);
-		assert !this.api.exists(TEST_UID)
+		this.api.remove(TEST_KEYS[0]);
+		assert !this.api.exists(TEST_KEYS[0])
 			: "Key/value mapping should have been removed";
 	}
 
 	public void testBigValue() throws FusionIOException {
-		Value value = Value.allocate(1024);
+		Value value = Value.get(BIG_VALUE_SIZE);
+		Value readback = Value.get(BIG_VALUE_SIZE);
 		ByteBuffer data = value.getByteBuffer();
 		while (data.remaining() > 0) {
 			data.put((byte) 0x42);
 		}
 
-		this.validatePutGetFlow(TEST_UID, value);
+		this.api.put(TEST_KEYS[0], value);
+		assert this.api.exists(TEST_KEYS[0])
+			: "Key/value mapping should exist";
+		this.api.get(TEST_KEYS[0], readback);
+		assert value.getByteBuffer().equals(readback.getByteBuffer())
+			: "Value data does not match";
 	}
 
-	private void validatePutGetFlow(Key key, Value value)
-		throws FusionIOException {
-		assert !this.api.exists(key)
-			: "Key/value mapping should not exist";
-		this.api.put(key, value, 60);
+	public void testBatchPut() throws FusionIOException {
+		this.api.put(TEST_KEYS, TEST_VALUES);
 
-		Value readback = null;
-		try {
-			readback = Value.allocate(value.info.value_len);
-			this.api.get(key, readback);
-			assert value.getByteBuffer().equals(readback.getByteBuffer())
-				: "Value data does not match";
-		} finally {
-			if (readback != null) {
-				readback.free();
-			}
+		for (int i=0; i<BATCH_SIZE; i++) {
+			this.api.get(TEST_KEYS[i], TEST_READBACK[i]);
+			assert TEST_VALUES[i].getByteBuffer()
+					.equals(TEST_READBACK[i].getByteBuffer())
+				: "Value " + i + " data does not match!";
+		}
+	}
+
+	public void testBatchRemove() throws FusionIOException {
+		this.api.put(TEST_KEYS, TEST_VALUES);
+		for (int i=0; i<BATCH_SIZE; i++) {
+			assert this.api.exists(TEST_KEYS[i]);
+		}
+
+		this.api.remove(TEST_KEYS);
+		for (int i=0; i<BATCH_SIZE; i++) {
+			assert !this.api.exists(TEST_KEYS[i]);
 		}
 	}
 }

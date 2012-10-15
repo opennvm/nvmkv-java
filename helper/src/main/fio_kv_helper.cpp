@@ -255,6 +255,127 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
 	return kv_delete(store->kv, store->pool, key->bytes, key->length) == 0;
 }
 
+
+/**
+ * Prepares a kv_iovec_t structure array for batch operations.
+ *
+ * Args:
+ *   keys (fio_kv_key_t *): An array of keys.
+ *   values (fio_kv_value_t *): An array of corresponding values (optional).
+ *   count (size_t): The number of elements.
+ * Returns:
+ *   Returns an allocated, populated array of count kv_iovec_t structures to be
+ *   used for batch operations.
+ */
+kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t *keys, fio_kv_value_t *values,
+		size_t count)
+{
+	kv_iovec_t *kv_iov;
+
+	assert(keys != NULL);
+	assert(count > 0);
+
+	kv_iov = (kv_iovec_t *)calloc(count, sizeof(kv_iovec_t));
+	for (int i=0; i<count; i++) {
+		kv_iov[i].key = keys[i].bytes;
+		kv_iov[i].key_len = keys[i].length;
+
+		if (values != NULL) {
+			kv_iov[i].value = values[i].data;
+			kv_iov[i].value_len = values[i].info->value_len;
+			kv_iov[i].expiry = values[i].info->expiry;
+			kv_iov[i].gen_count = values[i].info->gen_count;
+			kv_iov[i].replace = 1;
+		}
+	}
+
+	return kv_iov;
+}
+
+/**
+ * Retrieves a set of values corresponding to the given set of keys in one
+ * batch operation.
+ *
+ * Note that you must provide sector-aligned memory of the appropriate size for
+ * each value.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to retrieve.
+ *   values (fio_kv_value_t *): An array of allocated value structures to hold
+ *     the results.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch retrieval was successful, false otherwise.
+ */
+bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t *keys,
+		fio_kv_value_t *values, size_t count)
+{
+	kv_iovec_t *kv_iov;
+	int ret;
+
+	assert(store != NULL);
+	assert(values != NULL);
+
+	kv_iov = _fio_kv_prepare_batch(keys, values, count);
+	ret = kv_batch_get(store->kv, store->pool, kv_iov, count);
+	free(kv_iov);
+
+	return ret == 0;
+}
+
+/**
+ * Insert (or replace) a set of key/value pairs in one batch operation.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to insert.
+ *   values (fio_kv_value_t *): An array of corresponding values.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch insertion was successful, false otherwise.
+ */
+bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t *keys,
+		fio_kv_value_t *values, size_t count)
+{
+	kv_iovec_t *kv_iov;
+	int ret;
+
+	assert(store != NULL);
+	assert(values != NULL);
+
+	kv_iov = _fio_kv_prepare_batch(keys, values, count);
+	ret = kv_batch_put(store->kv, store->pool, kv_iov, count);
+	free(kv_iov);
+
+	return ret == 0;
+}
+
+/**
+ * Removes a set of key/value pairs in one batch operation.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to remove.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch insertion was successful, false otherwise.
+ */
+bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t *keys,
+		size_t count)
+{
+	kv_iovec_t *kv_iov;
+	int ret;
+
+	assert(store != NULL);
+
+	kv_iov = _fio_kv_prepare_batch(keys, NULL, count);
+	ret = kv_batch_delete(store->kv, store->pool, kv_iov, count);
+	free(kv_iov);
+
+	return ret == 0;
+}
+
 /**
  * Returns the last errno value.
  *

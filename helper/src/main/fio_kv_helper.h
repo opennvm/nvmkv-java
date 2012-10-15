@@ -164,6 +164,52 @@ bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key);
 bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key);
 
 /**
+ * Retrieves a set of values corresponding to the given set of keys in one
+ * batch operation.
+ *
+ * Note that you must provide sector-aligned memory of the appropriate size for
+ * each value.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to retrieve.
+ *   values (fio_kv_value_t *): An array of allocated value structures to hold
+ *     the results.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch retrieval was successful, false otherwise.
+ */
+bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t *keys,
+		fio_kv_value_t *values, size_t count);
+
+/**
+ * Insert (or replace) a set of key/value pairs in one batch operation.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to insert.
+ *   values (fio_kv_value_t *): An array of corresponding values.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch insertion was successful, false otherwise.
+ */
+bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t *keys,
+		fio_kv_value_t *values, size_t count);
+
+/**
+ * Removes a set of key/value pairs in one batch operation.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   keys (fio_kv_key_t *): An array of keys to remove.
+ *   count (size_t): The number of key/value pairs.
+ * Returns:
+ *   Returns true if the batch insertion was successful, false otherwise.
+ */
+bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t *keys,
+		size_t count);
+
+/**
  * Returns the last errno value.
  *
  * This method is obviously absolutely not thread-safe and cannot guarantee
