@@ -1,3 +1,10 @@
+# gitignore patterns for fiokv-java
+
+# Ignore build outputs
 /api/target/
 /dist/target/
 /helper/target/
+
+# Ignore editor temp files
+*.swp
+*~
