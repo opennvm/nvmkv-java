@@ -36,7 +36,7 @@
   <parent>
     <groupId>com.turn.fusionio</groupId>
     <artifactId>fiokv-java</artifactId>
-    <version>0.3.1</version>
+    <version>0.3.1-2</version>
   </parent>
 
   <name>FusionIO KV API Java binding distribution</name>
