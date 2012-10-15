@@ -4,18 +4,18 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * 
+ *
  * - Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the name Turn, Inc. nor the names of its contributors may be used
  *   to endorse or promote products derived from this software without specific
  *   prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,13 +31,8 @@
 package com.turn.fusionio;
 
 import com.sun.jna.Library;
-import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
 
 /**
  * Low-level access API to a FusionIO device key/value store functionality.
@@ -322,6 +317,16 @@ public class FusionIOAPI {
 	}
 
 	@Override
+	public boolean equals(Object o) {
+		if (o == null || ! (o instanceof FusionIOAPI)) {
+			return false;
+		}
+
+		FusionIOAPI other = (FusionIOAPI) o;
+		return this.device.equals(other.device) && this.poolId == other.poolId;
+	}
+
+	@Override
 	public String toString() {
 		return String.format("fusionio-api(device=%s,pool=%d,opened=%s)",
 			this.device, this.poolId,
@@ -340,21 +345,21 @@ public class FusionIOAPI {
 	 * @author mpetazzoni
 	 * @see src/cpp/fio_kv_helper/fio_kv_helper.h
 	 */
-	private interface HelperLibrary extends Library {
+	protected interface HelperLibrary extends Library {
 		public Store fio_kv_open(String device, int pool_id);
 		public void fio_kv_close(Store store);
+
 		public Pointer fio_kv_alloc(int length);
 		public void fio_kv_free_value(Value value);
+
 		public int fio_kv_get(Store store, Key key, Value value);
 		public int fio_kv_put(Store store, Key key, Value value);
 		public boolean fio_kv_exists(Store store, Key key);
 		public boolean fio_kv_delete(Store store, Key key);
-		public boolean fio_kv_batch_get(Store store, Pointer keys,
-			Pointer values, int count);
-		public boolean fio_kv_batch_put(Store store, Pointer keys,
-			Pointer values, int count);
-		public boolean fio_kv_batch_delete(Store store, Pointer keys,
-			int count);
+
+		public boolean fio_kv_batch_get(Store store, Pointer keys, Pointer values, int count);
+		public boolean fio_kv_batch_put(Store store, Pointer keys, Pointer values, int count);
+		public boolean fio_kv_batch_delete(Store store, Pointer keys, int count);
 	};
 
 	/**
@@ -381,318 +386,17 @@ public class FusionIOAPI {
 
 		public native Store fio_kv_open(String device, int pool_id);
 		public native void fio_kv_close(Store store);
+
 		public native Pointer fio_kv_alloc(int length);
 		public native void fio_kv_free_value(Value value);
+
 		public native int fio_kv_put(Store store, Key key, Value value);
 		public native int fio_kv_get(Store store, Key key, Value value);
 		public native boolean fio_kv_exists(Store store, Key key);
 		public native boolean fio_kv_delete(Store store, Key key);
-		public native boolean fio_kv_batch_get(Store store, Pointer keys,
-			Pointer values, int count);
-		public native boolean fio_kv_batch_put(Store store, Pointer keys,
-			Pointer values, int count);
-		public native boolean fio_kv_batch_delete(Store store, Pointer keys,
-			int count);
-	};
 
-	/**
-	 * Represents a FusionIO-based key/value store.
-	 *
-	 * <p>
-	 * This class maps to the <tt>fio_kv_store_t</tt> structure in the helper
-	 * library.
-	 * </p>
-	 *
-	 * @author mpetazzoni
-	 */
-	public static class Store extends Structure {
-
-		private static final String[] FIELD_ORDER = new String[] {"fd", "kv", "pool"};
-
-		/** The file descriptor bound to the FusionIO device. */
-		public int fd;
-
-		/** The KV store ID as understood by FusionIO's API. */
-		public long kv;
-
-		/** The pool ID in the KV store. */
-		public int pool;
-
-		public Store() {
-			this.setFieldOrder(FIELD_ORDER);
-		}
-
-		@Override
-		public String toString() {
-			return String.format("fusionio-store(fd=%d,kv=%d,pool=%d)",
-				this.fd, this.kv, this.pool);
-		}
-	};
-
-
-	/**
-	 * Represents a key for use in a FusionIO-based key/value store.
-	 *
-	 * <p>
-	 * This class maps to the <tt>fio_kv_key_t</tt> structure in the helper
-	 * library.
-	 * </p>
-	 *
-	 * @author mpetazzoni
-	 */
-	public static class Key extends Structure {
-
-		private static final String[] FIELD_ORDER = new String[] {"length", "bytes"};
-
-		/** The key length, in bytes. */
-		public int length;
-
-		/** The key bytes themselves. */
-		public Pointer bytes;
-
-		public Key() {
-			this.setFieldOrder(FIELD_ORDER);
-		}
-
-		/**
-		 * Get this {@link Key} as a long.
-		 *
-		 * @return The value held by this key, interpreted as a long.
-		 */
-		public long longValue() {
-			if (this.length != 8) {
-				throw new IllegalStateException("Key is not a long!");
-			}
-
-			return this.bytes.getLong(0);
-		}
-
-		/**
-		 * Set this {@link Key} to the given long ID.
-		 *
-		 * @param uid The key ID, as a long value.
-		 * @return Returns the {@link Key} object, for chaining.
-		 */
-		public Key set(long uid) {
-			this.length = 8;
-			this.bytes = new Memory(this.length);
-			this.bytes.setLong(0, uid);
-			this.write();
-			return this;
-		}
-
-		/**
-		 * Create a new {@link Key} for the given long ID.
-		 *
-		 * @param uid The key ID, as a long.
-		 * @return Returns the constructed {@link Key} object for that UID value.
-		 */
-		public static Key get(long uid) {
-			return new Key().set(uid);
-		}
-
-		/**
-		 * Retrieve a contiguous array of {@link Key} structures suitable for
-		 * passing to the native side.
-		 *
-		 * @param length The number of elements in the array.
-		 */
-		public static Key[] array(int length) {
-			return (Key[]) new Key().toArray(length);
-		}
-	};
-
-
-	/**
-	 * Represents a value for use in a FusionIO-based key/value store.
-	 *
-	 * <p>
-	 * This class maps to the <tt>fio_kv_value_t</tt> structure in the helper
-	 * library.
-	 * </p>
-	 *
-	 * @author mpetazzoni
-	 */
-	public static class Value extends Structure {
-
-		private static final String[] FIELD_ORDER = new String[] {"data", "info", "len"};
-
-		/** A {@link Pointer} to the memory holding the value. */
-		public Pointer data;
-
-		/**
-		 * A reference to the {@link KeyValueInfo} structure holding
-		 * information about the key/value mapping to insert or that was just
-		 * retrieved.
-		 */
-		public KeyValueInfo info;
-
-		public Value() {
-			this.setFieldOrder(FIELD_ORDER);
-		}
-
-		/**
-		 * Return this value's data as a {@link ByteBuffer}.
-		 *
-		 * @return Returns a {@link ByteBuffer} object mapping to the native
-		 *	memory allocated for this value's data.
-		 */
-		public ByteBuffer getByteBuffer() {
-			return this.data != null && this.info != null
-				? this.data.getByteBuffer(0, this.info.value_len)
-				: null;
-		}
-
-		/**
-		 * Allocate sector-aligned memory to hold this value's content.
-		 *
-		 * @param size The memory size, in bytes.
-		 * @return Returns the {@link Value} object, for chaining.
-		 */
-		public Value allocate(int size) {
-			if (this.data != null) {
-				throw new IllegalStateException("Value is already allocated!");
-			}
-
-			this.data = instance.fio_kv_alloc(size);
-			this.info = new KeyValueInfo();
-			this.info.value_len = size;
-			this.write();
-			return this;
-		}
-
-		/**
-		 * Set the expiration delay for this value, in seconds.
-		 *
-		 * @param expiry The expiry delay in seconds.
-		 * @return Returns thi {@link Value} object, for chaining.
-		 */
-		public Value setExpiry(int expiry) {
-			if (this.info == null) {
-				throw new IllegalStateException("Value is not allocated!");
-			}
-
-			this.info.expiry = expiry;
-			return this;
-		}
-
-		/**
-		 * Free the native memory used by this value's data.
-		 *
-		 * @return Returns the {@link Value} object, for chaining.
-		 */
-		public Value free() {
-			instance.fio_kv_free_value(this);
-			this.info = null;
-			return this;
-		}
-
-		/**
-		 * Initializes this {@link Value} object with allocated memory to hold its
-		 * data.
-		 *
-		 * <p>
-		 * This method creates a new value for use with this API and requests
-		 * sector-aligned memory from the native side to hold the value's data.
-		 * After use, the {@link free()} method must be called on the {@link
-		 * Value} object to release the allocated memory.
-		 * </p>
-		 *
-		 * @param size The size, in bytes, to allocate for.
-		 * @return Returns a ready-to-use {@link Value} object with allocated
-		 *	memory.
-		 */
-		public static Value get(int size) {
-			return new Value().allocate(size);
-		}
-
-		/**
-		 * Retrieve a contiguous array of {@link Value} structures suitable for
-		 * passing to the native side.
-		 *
-		 * @param length The number of elements in the array.
-		 */
-		public static Value[] array(int length) {
-			return (Value[]) new Value().toArray(length);
-		}
-	};
-
-
-	/**
-	 * Represents the info structure of a key/value mapping.
-	 *
-	 * <p>
-	 * This structure mapping for <tt>kv_key_info_t</tt> comes directly from
-	 * FusionIO's KV API library.
-	 * </p>
-	 *
-	 * @author mpetazzoni
-	 */
-	public static class KeyValueInfo extends Structure
-			implements Structure.ByReference {
-
-		private static final String[] FIELD_ORDER =
-			new String[] {"pool_id", "key_len", "value_len", "expiry",
-				"gen_count"};
-
-		/** The pool ID the mapping was read from. */
-		public int pool_id;
-
-		/** The length, in bytes, of the key. */
-		public int key_len;
-
-		/** The length, in bytes, of the value. */
-		public int value_len;
-
-		/** The expiry, in seconds, configured for this mapping. */
-		public int expiry;
-
-		/** The generation count for this mapping (this is not an
-		 * API-controlled value but is free to the user of the API). */
-		public int gen_count;
-
-		public KeyValueInfo() {
-			this.setFieldOrder(FIELD_ORDER);
-		}
-	};
-
-	/**
-	 * Exception class for low-level FusionIO API errors.
-	 *
-	 * @author mpetazzoni
-	 */
-	public static class FusionIOException extends IOException {
-
-		public static final long serialVersionUID = 1L;
-
-		private final int errno;
-
-		public FusionIOException(String message) {
-			super(message);
-			this.errno = 0;
-		}
-
-		public FusionIOException(String message, Throwable cause) {
-			super(message, cause);
-			this.errno = 0;
-		}
-
-		public FusionIOException(String message, int errno) {
-			super(message);
-			this.errno = errno;
-		}
-
-		public FusionIOException(String message, Throwable cause, int errno) {
-			super(message, cause);
-			this.errno = errno;
-		}
-
-		public String getMessage() {
-			if (this.errno == 0) {
-				return super.getMessage();
-			}
-
-			return String.format("%s [%d]", super.getMessage(), this.errno);
-		}
+		public native boolean fio_kv_batch_get(Store store, Pointer keys, Pointer values, int count);
+		public native boolean fio_kv_batch_put(Store store, Pointer keys, Pointer values, int count);
+		public native boolean fio_kv_batch_delete(Store store, Pointer keys, int count);
 	};
 }

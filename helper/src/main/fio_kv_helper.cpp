@@ -4,18 +4,18 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * - Redistributions of source code must retain the above copyright notice,
  *   this list of conditions and the following disclaimer.
- * 
+ *
  * - Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * - Neither the name Turn, Inc. nor the names of its contributors may be used
  *   to endorse or promote products derived from this software without specific
  *   prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -92,7 +92,7 @@ fio_kv_store_t *fio_kv_open(const char *device, int pool_id)
 }
 
 /**
- * Closes a key/value store.
+ * Close a key/value store.
  *
  * Closes and clears information in the fio_kv_store_t structure. It is the
  * responsibility of the caller to free to memory backing the structure.
@@ -131,7 +131,7 @@ void *fio_kv_alloc(uint32_t length)
 }
 
 /**
- * Frees the memory allocated for the 'data' field of a fio_kv_value_t
+ * Free the memory allocated for the 'data' field of a fio_kv_value_t
  * structure.
  *
  * It is still the responsibility of the caller to manage the memory of the
@@ -149,7 +149,7 @@ void fio_kv_free_value(fio_kv_value_t *value)
 }
 
 /**
- * Retrieves the value associated with a given key in a key/value store.
+ * Retrieve the value associated with a given key in a key/value store.
  *
  * Note that you must provide sector-aligned memory that will can contain the
  * requested number of bytes. Such memory can be obtained by calling
@@ -170,7 +170,7 @@ int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
 
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= 128);
+	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 	assert(value != NULL);
 	assert(value->data != NULL);
@@ -205,7 +205,7 @@ int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= 128);
+	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 	assert(value != NULL);
 	assert(value->data != NULL);
@@ -218,7 +218,7 @@ int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
 }
 
 /**
- * Tells whether a specific key exists in a key/value store.
+ * Tell whether a specific key exists in a key/value store.
  *
  * Args:
  *	 store (fio_kv_store_t *): The key/value store.
@@ -230,14 +230,14 @@ bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= 128);
+	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
 	return kv_exists(store->kv, store->pool, key->bytes, key->length);
 }
 
 /**
- * Removes a key/value pair from the key/value store.
+ * Remove a key/value pair from the key/value store.
  *
  * Args:
  *	 store (fio_kv_store_t *): The key/value store.
@@ -249,7 +249,7 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= 128);
+	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
 	return kv_delete(store->kv, store->pool, key->bytes, key->length) == 0;
@@ -257,7 +257,7 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
 
 
 /**
- * Prepares a kv_iovec_t structure array for batch operations.
+ * Prepare a kv_iovec_t structure array for batch operations.
  *
  * Args:
  *   keys (fio_kv_key_t *): An array of keys.
@@ -277,10 +277,16 @@ kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t *keys, fio_kv_value_t *values,
 
 	kv_iov = (kv_iovec_t *)calloc(count, sizeof(kv_iovec_t));
 	for (int i=0; i<count; i++) {
+		assert(keys[i].length >= 1 && keys[i].length <= KV_MAX_KEY_SIZE);
+		assert(keys[i].bytes != NULL);
+
 		kv_iov[i].key = keys[i].bytes;
 		kv_iov[i].key_len = keys[i].length;
 
 		if (values != NULL) {
+			assert(values[i].data != NULL);
+			assert(values[i].info != NULL);
+
 			kv_iov[i].value = values[i].data;
 			kv_iov[i].value_len = values[i].info->value_len;
 			kv_iov[i].expiry = values[i].info->expiry;
@@ -293,7 +299,7 @@ kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t *keys, fio_kv_value_t *values,
 }
 
 /**
- * Retrieves a set of values corresponding to the given set of keys in one
+ * Retrieve a set of values corresponding to the given set of keys in one
  * batch operation.
  *
  * Note that you must provide sector-aligned memory of the appropriate size for
@@ -352,7 +358,7 @@ bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t *keys,
 }
 
 /**
- * Removes a set of key/value pairs in one batch operation.
+ * Remove a set of key/value pairs in one batch operation.
  *
  * Args:
  *   store (fio_kv_store_t *): The key/value store.
