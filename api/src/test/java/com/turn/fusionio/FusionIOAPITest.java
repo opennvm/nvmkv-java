@@ -31,6 +31,7 @@
 package com.turn.fusionio;
 
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -166,5 +167,19 @@ public class FusionIOAPITest {
 		for (int i=0; i<BATCH_SIZE; i++) {
 			assert !this.api.exists(TEST_KEYS[i]);
 		}
+	}
+
+	public void testIteration() throws FusionIOException {
+		this.api.put(TEST_KEYS, TEST_VALUES);
+
+		int count = 0;
+		for (Map.Entry<Key, Value> pair : this.api) {
+			assert count < TEST_VALUES.length;
+			assert TEST_VALUES[(int)pair.getKey().longValue()].getByteBuffer()
+					.equals(pair.getValue().getByteBuffer())
+				: "Value data mismatch for key " + count + "!";
+			count++;
+		}
+		assert count == TEST_VALUES.length;
 	}
 }

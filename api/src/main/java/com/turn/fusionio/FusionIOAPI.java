@@ -34,6 +34,9 @@ import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 
+import java.util.Iterator;
+import java.util.Map;
+
 /**
  * Low-level access API to a FusionIO device key/value store functionality.
  *
@@ -45,7 +48,7 @@ import com.sun.jna.Pointer;
  *
  * @author mpetazzoni
  */
-public class FusionIOAPI {
+public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 
 	/**
 	 * Maximum key size supported by FusionIO.
@@ -316,6 +319,21 @@ public class FusionIOAPI {
 		}
 	}
 
+	/**
+	 * Retrieve an iterator on this key/value store.
+	 *
+	 * @return Returns a new iterator that returns key/value pairs from this store.
+	 */
+	@Override
+	public Iterator<Map.Entry<Key, Value>> iterator() {
+		try {
+			this.open();
+			return new FusionIOStoreIterator(this.store);
+		} catch (FusionIOException fioe) {
+			return null;
+		}
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (o == null || ! (o instanceof FusionIOAPI)) {
@@ -360,6 +378,10 @@ public class FusionIOAPI {
 		public boolean fio_kv_batch_get(Store store, Pointer keys, Pointer values, int count);
 		public boolean fio_kv_batch_put(Store store, Pointer keys, Pointer values, int count);
 		public boolean fio_kv_batch_delete(Store store, Pointer keys, int count);
+
+		public int fio_kv_iterator(Store store);
+		public boolean fio_kv_next(Store store, int iterator);
+		public boolean fio_kv_get_current(Store store, int iterator, Key key, Value value);
 	};
 
 	/**
@@ -398,5 +420,9 @@ public class FusionIOAPI {
 		public native boolean fio_kv_batch_get(Store store, Pointer keys, Pointer values, int count);
 		public native boolean fio_kv_batch_put(Store store, Pointer keys, Pointer values, int count);
 		public native boolean fio_kv_batch_delete(Store store, Pointer keys, int count);
+
+		public native int fio_kv_iterator(Store store);
+		public native boolean fio_kv_next(Store store, int iterator);
+		public native boolean fio_kv_get_current(Store store, int iterator, Key key, Value value);
 	};
 }

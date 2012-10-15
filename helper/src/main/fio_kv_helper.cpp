@@ -383,7 +383,69 @@ bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t *keys,
 }
 
 /**
- * Returns the last errno value.
+ * Create an iterator on a key/value store.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ * Returns:
+ *   Returns the new iterator's ID, or -1 if an iterator could not be created.
+ */
+int fio_kv_iterator(fio_kv_store_t *store)
+{
+	assert(store != NULL);
+
+	return kv_begin(store->kv, store->pool);
+}
+
+/**
+ * Move an iterator to the following element in a key/value store.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   iterator (int): The ID of the iterator to advance.
+ * Returns:
+ *   Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_next(fio_kv_store_t *store, int iterator)
+{
+	assert(store != NULL);
+	assert(iterator >= 0);
+
+	return kv_next(store->kv, store->pool, iterator) == 0;
+}
+
+/**
+ * Retrieve the key and value at the current iterator's position.
+ *
+ * Args:
+ *   store (fio_kv_store_t *): The key/value store.
+ *   iterator (int): The ID of the iterator.
+ *   key (fio_kv_key_t *): An allocated key structure to hold the current key.
+ *   value (fio_kv_value_t *): An allocated value structure to hold the current
+ *		value.
+ * Returns:
+ *   Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_get_current(fio_kv_store_t *store, int iterator, fio_kv_key_t *key,
+		fio_kv_value_t *value)
+{
+	assert(store != NULL);
+	assert(iterator >= 0);
+	assert(key != NULL);
+	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->bytes != NULL);
+	assert(value != NULL);
+	assert(value->data != NULL);
+	assert(value->info != NULL);
+
+	return kv_get_current(store->kv, iterator,
+			key->bytes, &(key->length),
+			value->data, value->info->value_len,
+			value->info) >= 0;
+}
+
+/**
+ * Retrieve the last errno value.
  *
  * This method is obviously absolutely not thread-safe and cannot guarantee
  * that the returned value matches the last error.
