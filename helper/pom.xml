@@ -70,6 +70,7 @@
 
           <compilerStartOptions>
             <compilerStartOption>-ansi -pedantic -pedantic-errors -Werror -fPIC</compilerStartOption>
+            <compilerStartOption>${fio_kv_helper.gcc.extraargs}</compilerStartOption>
           </compilerStartOptions>
 
           <linkerStartOptions>
