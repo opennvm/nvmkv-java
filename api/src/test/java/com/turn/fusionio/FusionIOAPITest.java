@@ -33,6 +33,7 @@ package com.turn.fusionio;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -56,13 +57,16 @@ public class FusionIOAPITest {
 	private static final int BATCH_SIZE = 10;
 	private static final int BIG_VALUE_SIZE = 4096;
 
-	private static final Key[] TEST_KEYS = Key.array(BATCH_SIZE);
-	private static final Value[] TEST_VALUES = Value.array(BATCH_SIZE);
-	private static final Value[] TEST_READBACK = Value.array(BATCH_SIZE);
+	private static final Key[] TEST_KEYS = new Key[BATCH_SIZE];
+	private static final Value[] TEST_VALUES = new Value[BATCH_SIZE];
+	private static final Value[] TEST_READBACK = new Value[BATCH_SIZE];
 
+	// "hello, world"
 	private static final byte[] TEST_DATA = new byte[] {
-		// hello, world
-		0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x2c, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x00
+		0x68, 0x65, 0x6c, 0x6c, 0x6f,
+		0x2c, 0x20,
+		0x77, 0x6f, 0x72, 0x6c, 0x64,
+		0x00,
 	};
 
 	private FusionIOAPI api = null;
@@ -71,9 +75,11 @@ public class FusionIOAPITest {
 	public void setUp() throws FusionIOException {
 		this.api = new FusionIOAPI(DEVICE_NAME, POOL_ID);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			TEST_KEYS[i].set(i);
-			TEST_VALUES[i].allocate(TEST_DATA.length);
+			TEST_KEYS[i] = Key.get(i);
+			TEST_VALUES[i] = Value.get(TEST_DATA.length);
 			TEST_VALUES[i].getByteBuffer().put(TEST_DATA);
+			TEST_VALUES[i].getByteBuffer().rewind();
+			TEST_READBACK[i] = Value.get(TEST_DATA.length);
 		}
 	}
 
@@ -81,8 +87,9 @@ public class FusionIOAPITest {
 	public void clean() throws FusionIOException {
 		this.api.remove(TEST_KEYS);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			TEST_READBACK[i].free();
-			TEST_READBACK[i].allocate(TEST_DATA.length);
+			TEST_READBACK[i]
+				.free()
+				.allocate(TEST_DATA.length);
 		}
 	}
 
@@ -104,20 +111,20 @@ public class FusionIOAPITest {
 			: "FusionIO API should be closed now";
 	}
 
-	public void testPut() throws FusionIOException {
-		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
-		assert this.api.exists(TEST_KEYS[0])
-			: "Key/value mapping should exist";
-	}
-
 	public void testGet() throws FusionIOException {
 		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
 		assert this.api.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 		this.api.get(TEST_KEYS[0], TEST_READBACK[0]);
-		assert TEST_VALUES[0].getByteBuffer()
-				.equals(TEST_READBACK[0].getByteBuffer())
-			: "Value data does not match";
+		Assert.assertEquals(
+			TEST_READBACK[0].getByteBuffer(),
+			TEST_VALUES[0].getByteBuffer());
+	}
+
+	public void testPut() throws FusionIOException {
+		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.api.exists(TEST_KEYS[0])
+			: "Key/value mapping should exist";
 	}
 
 	public void testRemove() throws FusionIOException {
@@ -142,8 +149,9 @@ public class FusionIOAPITest {
 		assert this.api.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 		this.api.get(TEST_KEYS[0], readback);
-		assert value.getByteBuffer().equals(readback.getByteBuffer())
-			: "Value data does not match";
+
+		data.rewind();
+		Assert.assertEquals(readback.getByteBuffer(), data);
 	}
 
 	public void testBatchPut() throws FusionIOException {
@@ -151,9 +159,10 @@ public class FusionIOAPITest {
 
 		for (int i=0; i<BATCH_SIZE; i++) {
 			this.api.get(TEST_KEYS[i], TEST_READBACK[i]);
-			assert TEST_VALUES[i].getByteBuffer()
-					.equals(TEST_READBACK[i].getByteBuffer())
-				: "Value " + i + " data does not match!";
+			Assert.assertEquals(
+				TEST_READBACK[i].getByteBuffer(),
+				TEST_VALUES[i].getByteBuffer(),
+				"Value #" + i + "'s data does not match!");
 		}
 	}
 
@@ -175,9 +184,10 @@ public class FusionIOAPITest {
 		int count = 0;
 		for (Map.Entry<Key, Value> pair : this.api) {
 			assert count < TEST_VALUES.length;
-			assert TEST_VALUES[(int)pair.getKey().longValue()].getByteBuffer()
-					.equals(pair.getValue().getByteBuffer())
-				: "Value data mismatch for key " + count + "!";
+			Assert.assertEquals(
+				pair.getValue().getByteBuffer(),
+				TEST_VALUES[(int)pair.getKey().longValue()].getByteBuffer(),
+				"Value data mismatch for key " + count + "!");
 			count++;
 		}
 		assert count == TEST_VALUES.length;

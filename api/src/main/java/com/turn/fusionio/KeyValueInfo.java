@@ -30,8 +30,6 @@
  */
 package com.turn.fusionio;
 
-import com.sun.jna.Structure;
-
 /**
  * Represents the info structure of a key/value mapping.
  *
@@ -42,12 +40,7 @@ import com.sun.jna.Structure;
  *
  * @author mpetazzoni
  */
-public class KeyValueInfo extends Structure
-		implements Structure.ByReference {
-
-	private static final String[] FIELD_ORDER =
-		new String[] {"pool_id", "key_len", "value_len", "expiry",
-			"gen_count"};
+public class KeyValueInfo {
 
 	/** The pool ID the mapping was read from. */
 	public int pool_id;
@@ -66,6 +59,14 @@ public class KeyValueInfo extends Structure
 	public int gen_count;
 
 	public KeyValueInfo() {
-		this.setFieldOrder(FIELD_ORDER);
+	}
+
+	public KeyValueInfo(int pool_id, int key_len, int value_len, int expiry,
+		int gen_count) {
+		this.pool_id = pool_id;
+		this.key_len = key_len;
+		this.value_len = value_len;
+		this.expiry = expiry;
+		this.gen_count = gen_count;
 	}
 };

@@ -30,10 +30,8 @@
  */
 package com.turn.fusionio;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
-
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * Represents a value for use in a FusionIO-based key/value store.
@@ -45,23 +43,17 @@ import java.nio.ByteBuffer;
  *
  * @author mpetazzoni
  */
-public class Value extends Structure {
+public class Value {
 
-	private static final String[] FIELD_ORDER = new String[] {"data", "info", "len"};
-
-	/** A {@link Pointer} to the memory holding the value. */
-	public Pointer data;
+	/** A {@link ByteBuffer} holding the value's contents. */
+	private ByteBuffer data = null;
 
 	/**
 	 * A reference to the {@link KeyValueInfo} structure holding
 	 * information about the key/value mapping to insert or that was just
 	 * retrieved.
 	 */
-	public KeyValueInfo info;
-
-	public Value() {
-		this.setFieldOrder(FIELD_ORDER);
-	}
+	private KeyValueInfo info = null;
 
 	/**
 	 * Return this value's data as a {@link ByteBuffer}.
@@ -70,9 +62,16 @@ public class Value extends Structure {
 	 *	memory allocated for this value's data.
 	 */
 	public ByteBuffer getByteBuffer() {
-		return this.data != null && this.info != null
-			? this.data.getByteBuffer(0, this.info.value_len)
-			: null;
+		return this.data;
+	}
+
+	/**
+	 * Return the value's size, in bytes.
+	 *
+	 * @return The value size, in bytes.
+	 */
+	public int size() {
+		return this.info.value_len;
 	}
 
 	/**
@@ -86,10 +85,10 @@ public class Value extends Structure {
 			throw new IllegalStateException("Value is already allocated!");
 		}
 
-		this.data = FusionIOAPI.instance.fio_kv_alloc(size);
+		this.data = FusionIOAPI.HelperLibrary.fio_kv_alloc(size)
+			.order(ByteOrder.nativeOrder());
 		this.info = new KeyValueInfo();
 		this.info.value_len = size;
-		this.write();
 		return this;
 	}
 
@@ -114,7 +113,7 @@ public class Value extends Structure {
 	 * @return Returns the {@link Value} object, for chaining.
 	 */
 	public Value free() {
-		FusionIOAPI.instance.fio_kv_free_value(this);
+		FusionIOAPI.HelperLibrary.fio_kv_free_value(this);
 		this.info = null;
 		return this;
 	}
@@ -122,7 +121,9 @@ public class Value extends Structure {
 	@Override
 	public String toString() {
 		byte[] data = new byte[this.info.value_len];
-		this.getByteBuffer().get(data);
+		this.data.mark();
+		this.data.get(data);
+		this.data.reset();
 		return new String(data);
 	}
 
@@ -143,15 +144,5 @@ public class Value extends Structure {
 	 */
 	public static Value get(int size) {
 		return new Value().allocate(size);
-	}
-
-	/**
-	 * Retrieve a contiguous array of {@link Value} structures suitable for
-	 * passing to the native side.
-	 *
-	 * @param length The number of elements in the array.
-	 */
-	public static Value[] array(int length) {
-		return (Value[]) new Value().toArray(length);
 	}
 }

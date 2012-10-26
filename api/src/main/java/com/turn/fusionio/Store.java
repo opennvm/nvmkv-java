@@ -30,8 +30,6 @@
  */
 package com.turn.fusionio;
 
-import com.sun.jna.Structure;
-
 /**
  * Represents a FusionIO-based key/value store.
  *
@@ -42,21 +40,21 @@ import com.sun.jna.Structure;
  *
  * @author mpetazzoni
  */
-public class Store extends Structure {
-
-	private static final String[] FIELD_ORDER = new String[] {"fd", "kv", "pool"};
+public class Store {
 
 	/** The file descriptor bound to the FusionIO device. */
-	public int fd;
+	public final int fd;
 
 	/** The KV store ID as understood by FusionIO's API. */
-	public long kv;
+	public final long kv;
 
 	/** The pool ID in the KV store. */
-	public int pool;
+	public final int pool;
 
-	public Store() {
-		this.setFieldOrder(FIELD_ORDER);
+	public Store(int fd, long kv, int pool) {
+		this.fd = fd;
+		this.kv = kv;
+		this.pool = pool;
 	}
 
 	@Override

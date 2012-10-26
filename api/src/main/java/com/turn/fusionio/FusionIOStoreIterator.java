@@ -30,6 +30,7 @@
  */
 package com.turn.fusionio;
 
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -56,7 +57,7 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	 */
 	public FusionIOStoreIterator(Store store) throws FusionIOException {
 		this.store = store;
-		this.iterator = FusionIOAPI.instance.fio_kv_iterator(this.store);
+		this.iterator = FusionIOAPI.HelperLibrary.fio_kv_iterator(this.store);
 		if (this.iterator < 0) {
 			throw new FusionIOException("Could not create iterator on " +
 				this.store + "!");
@@ -101,15 +102,18 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	}
 
 	private KeyValuePair advance() {
-		if (!FusionIOAPI.instance.fio_kv_next(this.store, this.iterator)) {
+		if (!FusionIOAPI.HelperLibrary.fio_kv_next(this.store, this.iterator)) {
 			return null;
 		}
 
-		if (!FusionIOAPI.instance.fio_kv_get_current(this.store, this.iterator,
+		if (!FusionIOAPI.HelperLibrary.fio_kv_get_current(this.store, this.iterator,
 				allocated.getKey(), allocated.getValue())) {
 			return null;
 		}
 
+		ByteBuffer data = allocated.getValue().getByteBuffer();
+		data.rewind();
+		data.limit(allocated.getValue().size());
 		return allocated;
 	}
 }

@@ -30,9 +30,8 @@
  */
 package com.turn.fusionio;
 
-import com.sun.jna.Memory;
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 /**
  * Represents a key for use in a FusionIO-based key/value store.
@@ -44,19 +43,13 @@ import com.sun.jna.Structure;
  *
  * @author mpetazzoni
  */
-public class Key extends Structure {
-
-	private static final String[] FIELD_ORDER = new String[] {"length", "bytes"};
+public class Key {
 
 	/** The key length, in bytes. */
-	public int length;
+	private int length;
 
 	/** The key bytes themselves. */
-	public Pointer bytes;
-
-	public Key() {
-		this.setFieldOrder(FIELD_ORDER);
-	}
+	private ByteBuffer bytes;
 
 	/**
 	 * Get this {@link Key} as a long.
@@ -76,12 +69,28 @@ public class Key extends Structure {
 	 *
 	 * @param uid The key ID, as a long value.
 	 * @return Returns the {@link Key} object, for chaining.
+	 * @throws IllegalStateException If this key is not allocated, or not
+	 *	allocated to host a long value (8 bytes).
 	 */
 	public Key set(long uid) {
-		this.length = 8;
-		this.bytes = new Memory(this.length);
-		this.bytes.setLong(0, uid);
-		this.write();
+		if (this.bytes == null || this.length != 8) {
+			throw new IllegalStateException("Key is not allocated for long values!");
+		}
+
+		this.bytes.putLong(0, uid);
+		return this;
+	}
+
+	/**
+	 * Allocate memory for this {@link Key}.
+	 *
+	 * @param size The length, in bytes, of the key.
+	 * @return Returns the {@link Key} object, for chaining.
+	 */
+	public Key allocate(int size) {
+		this.length = size;
+		this.bytes = ByteBuffer.allocateDirect(this.length)
+			.order(ByteOrder.nativeOrder());
 		return this;
 	}
 
@@ -92,16 +101,6 @@ public class Key extends Structure {
 	 * @return Returns the constructed {@link Key} object for that UID value.
 	 */
 	public static Key get(long uid) {
-		return new Key().set(uid);
-	}
-
-	/**
-	 * Retrieve a contiguous array of {@link Key} structures suitable for
-	 * passing to the native side.
-	 *
-	 * @param length The number of elements in the array.
-	 */
-	public static Key[] array(int length) {
-		return (Key[]) new Key().toArray(length);
+		return new Key().allocate(8).set(uid);
 	}
 }
