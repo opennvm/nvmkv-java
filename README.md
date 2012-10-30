@@ -42,8 +42,9 @@ Dependencies
 their KV API header files. These are _not_ provided as part of this package nor
 are these dependencies managed by the Maven build.
 
-The Java library depends on JNA and TestNG, both of which are managed by Maven
-as compile-time and run-time or test-time dependencies (respectively).
+The helper library depends on JNI (Java Native Interface), which means you need
+to build the Maven project with a JDK instead of a JRE. Both `jni.h` and
+`jni_md.h` must be in the JDK`s `include/` directory.
 
 
 Building
@@ -62,16 +63,12 @@ To build everything. The build outputs will be placed in
 * `libfio_kv_helper-<version>.so`, the C shared library
 * `fiokv-java-api-<version>.jar`, the Java binding
 
-If you use these outputs in a non-Maven project, don't forget to grab the
-appropriate version of the JNA library JAR (check the dependency version in
-`api/pom.xml`) and place it in your classpath.
-
 
 Usage
 -----
 
-First, make sure that the JNA and Java binding JARs are on your classpath. You
-will also need to set `LD_LIBRARY_PATH` to a directory containing the
+First, make sure that the Java binding JAR are on your classpath, and that your
+`LD_LIBRARY_PATH` contains the directory with the
 `libfio_kv_helper-<version>.so` library.
 
 On the Java side, you can now simply access the library through a
@@ -108,7 +105,7 @@ Key key = Key.get(42L);
  * place the data to be stored. You can easily access this memory through
  * a ByteBuffer.
  */
-Value value = Value.allocate(value_len);
+Value value = Value.get(value_len);
 ByteBuffer data = value.getByteBuffer();
 
 // Put stuff into the data ByteBuffer.
@@ -125,7 +122,7 @@ To read a value (you need to know the value length in advance with the current
 version of FusionIO's KV library):
 
 ```java
-Value readback = Value.allocate(value_len);
+Value readback = Value.get(value_len);
 api.get(Key.get(42L), readback);
 ByteBuffer data = readback.getByteBuffer();
 
@@ -136,8 +133,24 @@ value.free();
 value = null;
 ```
 
-Check out `com.turn.fusionio.FusionIOAPI` for the full specification of the
-available methods.
+Batch operations are supported through the same `get`, `put` and `remove`
+methods and seamlessly operate on arrays of `Key`s and `Value`s. Check out
+`com.turn.fusionio.FusionIOAPI` for the full specification of the available
+methods.
+
+
+Performance considerations
+--------------------------
+
+Because the data contained in a `Key` or in a `Value` is allocated from the
+native side, it is strongly recommended that users of the `FusionIOAPI` limit
+the allocation of new keys or values to a minimum.
+
+If your keys all have the same size it is much faster to use a single `Key`
+object and change its content rather than reallocating a new one. For values,
+you usually have to allocate a `Value` object of the maximum possible size
+anyway, so here again it is recommended to use a single `Value` object and
+re-use its allocated buffer as much as possible.
 
 
 Authors
@@ -164,3 +177,14 @@ Caveats
   FusionIO are planned to remove this limitation, allowing for more use cases
   to be truly zero-copy, as well as not having to do manual memory management
   of the allocated memory.
+
+* Because of the requirement for sector-aligned memory, this memory is
+  allocated from the native side and thus cannot be managed by the JVM's
+  garbage collector. It is thus the responsibility of the user to correctly
+  free this memory by calling `free()` on a `Value` object before loosing the
+  reference to it. This is the only way by which the memory used by these
+  sector-aligned buffers can be recovered.
+
+* The API for `Key` currently only supports creating keys that represent `long`
+  integers. It is planed to extend this to any content as the key is
+  implemented using a `ByteBuffer` anyway.

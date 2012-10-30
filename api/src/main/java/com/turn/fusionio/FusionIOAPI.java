@@ -40,7 +40,7 @@ import java.util.Map;
  * <p>
  * This class provides a convenient Java facade to FusionIO's key/value store
  * API. It makes uses of an intermediary helper library which is then mapped to
- * Java via JNA.
+ * Java via JNI.
  * </p>
  *
  * @author mpetazzoni
