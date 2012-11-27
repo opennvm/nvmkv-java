@@ -64,6 +64,17 @@ To build everything. The build outputs will be placed in
 * `fiokv-java-api-<version>.jar`, the Java binding
 
 
+Executing the test suite
+------------------------
+
+Running the tests requires an available, attached FusionIO device at
+`/dev/fioa`. Note that **running the tests is destructive of all data on the
+card!**
+
+```
+$ mvn test -Dtests.disable=false
+```
+
 Usage
 -----
 
@@ -164,6 +175,7 @@ Authors
 
 * Maxime Petazzoni <mpetazzoni@turn.com> (Sr. Platform Engineer at Turn, Inc)
   Original author, main developer and maintainer.
+* FusionIO's SDK team, for their answers, reviews and feedback.
 
 
 Caveats
