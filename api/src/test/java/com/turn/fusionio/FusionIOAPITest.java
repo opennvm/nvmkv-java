@@ -75,7 +75,7 @@ public class FusionIOAPITest {
 	public void setUp() throws FusionIOException {
 		this.api = new FusionIOAPI(DEVICE_NAME, POOL_ID);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			TEST_KEYS[i] = Key.get(i);
+			TEST_KEYS[i] = Key.createFrom(i);
 			TEST_VALUES[i] = Value.get(TEST_DATA.length);
 			TEST_VALUES[i].getByteBuffer().put(TEST_DATA);
 			TEST_VALUES[i].getByteBuffer().rewind();

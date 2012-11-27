@@ -85,6 +85,10 @@ public class Value {
 			throw new IllegalStateException("Value is already allocated!");
 		}
 
+		if (size <= 0) {
+			throw new IllegalArgumentException("Invalid value size!");
+		}
+
 		this.data = FusionIOAPI.HelperLibrary.fio_kv_alloc(size)
 			.order(ByteOrder.nativeOrder());
 		this.info = new KeyValueInfo();
@@ -128,19 +132,17 @@ public class Value {
 	}
 
 	/**
-	 * Initializes this {@link Value} object with allocated memory to hold its
+	 * Initializes a new {@link Value} object with allocated memory to hold its
 	 * data.
 	 *
 	 * <p>
-	 * This method creates a new value for use with this API and requests
+	 * This creates a new value for use with this API and requests
 	 * sector-aligned memory from the native side to hold the value's data.
-	 * After use, the {@link free()} method must be called on the {@link
-	 * Value} object to release the allocated memory.
+	 * After use, the {@link free()} method must be called on the {@link Value}
+	 * object to release the allocated memory.
 	 * </p>
 	 *
 	 * @param size The size, in bytes, to allocate for.
-	 * @return Returns a ready-to-use {@link Value} object with allocated
-	 *	memory.
 	 */
 	public static Value get(int size) {
 		return new Value().allocate(size);

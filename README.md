@@ -94,10 +94,16 @@ To write a key/value pair:
 ```java
 /* Create a key.
  *
- * Key.get(long uid); is a convenient way of creating keys from
- * long integer values. But keys can be anything up to 128 bytes long.
+ * Key.createFrom(long); is a convenient way of creating keys from long integer
+ * values. But keys can be anything up to 128 bytes long. You can also
+ * simply create a Key from an existing byte[] with Key.createFrom(byte[]), or
+ * empty for you to fill in with Key.get(size).
  */
-Key key = Key.get(42L);
+Key key = Key.get(64); // creates a 64-byte key
+ByteBuffer keyData = key.getByteBuffer(); // put stuff in keyData
+
+key = Key.createFrom(new byte[] { 0x66, 0x6F, 0x6F }); // 'foo'
+key = Key.createFrom(42);
 
 /* Create a value.
  *
@@ -122,8 +128,8 @@ To read a value (you need to know the value length in advance with the current
 version of FusionIO's KV library):
 
 ```java
-Value readback = Value.get(value_len);
-api.get(Key.get(42L), readback);
+Value readback = new Value(value_len);
+api.get(Key.createFrom(42L), readback);
 ByteBuffer data = readback.getByteBuffer();
 
 // Do stuff with the data ByteBuffer
@@ -184,7 +190,3 @@ Caveats
   free this memory by calling `free()` on a `Value` object before loosing the
   reference to it. This is the only way by which the memory used by these
   sector-aligned buffers can be recovered.
-
-* The API for `Key` currently only supports creating keys that represent `long`
-  integers. It is planed to extend this to any content as the key is
-  implemented using a `ByteBuffer` anyway.

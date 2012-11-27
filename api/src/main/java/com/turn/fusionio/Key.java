@@ -46,10 +46,49 @@ import java.nio.ByteOrder;
 public class Key {
 
 	/** The key length, in bytes. */
-	private int length;
+	private int length = 0;
 
 	/** The key bytes themselves. */
-	private ByteBuffer bytes;
+	private ByteBuffer bytes = null;
+
+	/**
+	 * Return the key's size, in bytes.
+	 *
+	 * @return The key size, in bytes.
+	 */
+	public int size() {
+		return this.length;
+	}
+
+	/**
+	 * Return this key's data as a {@link ByteBuffer}.
+	 *
+	 * @return Returns a {@link ByteBuffer} object mapping to the native
+	 *	memory allocated for this value's data.
+	 */
+	public ByteBuffer getByteBuffer() {
+		return this.bytes;
+	}
+
+	/**
+	 * Allocate memory for this {@link Key}.
+	 *
+	 * @param size The length, in bytes, of the key.
+	 * @return Returns the {@link Key} object, for chaining.
+	 * @throws IllegalArgumentException If the requested size is not between 1
+	 *	and 128 bytes.
+	 */
+	public Key allocate(int size) {
+		if (size <= 0 || size > FusionIOAPI.FUSION_IO_MAX_KEY_SIZE) {
+			throw new IllegalArgumentException(
+				"Invalid key size " + size + "!");
+		}
+
+		this.length = size;
+		this.bytes = ByteBuffer.allocateDirect(this.length)
+			.order(ByteOrder.nativeOrder());
+		return this;
+	}
 
 	/**
 	 * Get this {@link Key} as a long.
@@ -65,42 +104,45 @@ public class Key {
 	}
 
 	/**
-	 * Set this {@link Key} to the given long ID.
+	 * Initiliazes and allocates a new Key of the given size.
 	 *
-	 * @param uid The key ID, as a long value.
-	 * @return Returns the {@link Key} object, for chaining.
-	 * @throws IllegalStateException If this key is not allocated, or not
-	 *	allocated to host a long value (8 bytes).
+	 * @param size The key size, in bytes.
 	 */
-	public Key set(long uid) {
-		if (this.bytes == null || this.length != 8) {
-			throw new IllegalStateException("Key is not allocated for long values!");
-		}
-
-		this.bytes.putLong(0, uid);
-		return this;
+	public static Key get(int size) {
+		return new Key().allocate(size);
 	}
 
 	/**
-	 * Allocate memory for this {@link Key}.
-	 *
-	 * @param size The length, in bytes, of the key.
-	 * @return Returns the {@link Key} object, for chaining.
-	 */
-	public Key allocate(int size) {
-		this.length = size;
-		this.bytes = ByteBuffer.allocateDirect(this.length)
-			.order(ByteOrder.nativeOrder());
-		return this;
-	}
-
-	/**
-	 * Create a new {@link Key} for the given long ID.
+	 * Create a new {@link Key} from the given long ID.
 	 *
 	 * @param uid The key ID, as a long.
 	 * @return Returns the constructed {@link Key} object for that UID value.
 	 */
-	public static Key get(long uid) {
-		return new Key().allocate(8).set(uid);
+	public static Key createFrom(long uid) {
+		Key k = Key.get(8);
+		k.bytes.putLong(uid);
+		k.bytes.rewind();
+		return k;
+	}
+
+	/**
+	 * Create a key from the given byte array.
+	 *
+	 * @param data The key's contents.
+	 * @return Returns the newly created {@link Key}, with the data copied into
+	 *	it.
+	 * @throws IllegalArgumentException If the data size is not between 1 and
+	 *	128 bytes.
+	 */
+	public static Key createFrom(byte[] data) {
+		if (data.length <= 0 || data.length > FusionIOAPI.FUSION_IO_MAX_KEY_SIZE) {
+			throw new IllegalArgumentException(
+				"Invalid key size " + data.length + "!");
+		}
+
+		Key k = Key.get(data.length);
+		k.bytes.put(data);
+		k.bytes.rewind();
+		return k;
 	}
 }
