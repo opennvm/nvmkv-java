@@ -47,6 +47,7 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 
 	private final KeyValuePair allocated;
 	private KeyValuePair next;
+	private boolean first;
 
 	/**
 	 * Instantiate a new iterator on the given key/value store.
@@ -67,6 +68,7 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 			Key.get(FusionIOAPI.FUSION_IO_MAX_KEY_SIZE),
 			Value.get(FusionIOAPI.FUSION_IO_MAX_VALUE_SIZE));
 		this.next = null;
+		this.first = true;
 	}
 
 	@Override
@@ -102,9 +104,12 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	}
 
 	private KeyValuePair advance() {
-		if (!FusionIOAPI.HelperLibrary.fio_kv_next(this.store, this.iterator)) {
+		if (!this.first &&
+			!FusionIOAPI.HelperLibrary.fio_kv_next(this.store, this.iterator)) {
 			return null;
 		}
+
+		this.first = false;
 
 		if (!FusionIOAPI.HelperLibrary.fio_kv_get_current(this.store, this.iterator,
 				allocated.getKey(), allocated.getValue())) {
