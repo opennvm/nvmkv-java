@@ -591,6 +591,21 @@ jobject __fio_kv_store_to_jobject(JNIEnv *env, fio_kv_store_t *store)
 }
 
 /**
+ * Re-populates the fields of a Store object from a a fio_kv_store_t structure.
+ */
+void __fio_kv_store_set_jobject(JNIEnv *env, fio_kv_store_t *store,
+		jobject _store)
+{
+	assert(env != NULL);
+	assert(store != NULL);
+	assert(_store != NULL);
+
+	env->SetIntField(_store, _store_field_fd, store->fd);
+	env->SetLongField(_store, _store_field_kv, store->kv);
+	env->SetIntField(_store, _store_field_pool, store->pool);
+}
+
+/**
  * Convert a Key object into a fio_kv_key_t structure.
  *
  * A new fio_kv_key_t structure is allocated and populated. It will need to be
@@ -731,6 +746,7 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
 {
 	fio_kv_store_t *store = __jobject_to_fio_kv_store(env, _store);
 	fio_kv_close(store);
+	__fio_kv_store_set_jobject(env, store, _store);
 	free(store);
 }
 
