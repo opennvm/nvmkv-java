@@ -77,13 +77,14 @@ fio_kv_store_t *fio_kv_open(const char *device, int pool_id)
 
 	store	= (fio_kv_store_t *)calloc(1, sizeof(fio_kv_store_t));
 
-	store->fd = open(device, O_RDWR);
+	store->fd = open(device, O_RDWR | O_DIRECT);
 	if (store->fd < 0) {
 		free(store);
 		return NULL;
 	}
 
-	store->kv = kv_create(store->fd, FIO_KV_API_VERSION, FIO_KV_MAX_POOLS, false);
+	store->kv = nvm_kv_create(store->fd, FIO_KV_API_VERSION,
+			FIO_KV_MAX_POOLS, KV_DISABLE_EXPIRY, false);
 	if (store->kv <= 0) {
 		free(store);
 		return NULL;
@@ -106,8 +107,11 @@ void fio_kv_close(fio_kv_store_t *store)
 {
 	assert(store != NULL);
 
-	// TODO: check return value of close(). See close(2).
-	close(store->fd);
+	if (store->fd) {
+		// TODO: check return value of close(). See close(2).
+		close(store->fd);
+	}
+
 	store->fd = 0;
 	store->kv = 0;
 }
@@ -170,13 +174,13 @@ int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 	assert(value != NULL);
 	assert(value->data != NULL);
 	assert(value->info != NULL);
 
-	return kv_get(store->kv, store->pool,
+	return nvm_kv_get(store->kv, store->pool,
 			key->bytes, key->length,
 			value->data, value->info->value_len,
 			value->info);
@@ -200,13 +204,13 @@ int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 	assert(value != NULL);
 	assert(value->data != NULL);
 	assert(value->info != NULL);
 
-	return kv_put(store->kv, store->pool,
+	return nvm_kv_put(store->kv, store->pool,
 			key->bytes, key->length,
 			value->data, value->info->value_len,
 			value->info->expiry, true, 0);
@@ -225,10 +229,10 @@ bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
-	return kv_exists(store->kv, store->pool, key->bytes, key->length);
+	return nvm_kv_exists(store->kv, store->pool, key->bytes, key->length, NULL);
 }
 
 /**
@@ -244,14 +248,14 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
-	return kv_delete(store->kv, store->pool, key->bytes, key->length) == 0;
+	return nvm_kv_delete(store->kv, store->pool, key->bytes, key->length) == 0;
 }
 
 /**
- * Prepare a kv_iovec_t structure array for batch operations.
+ * Prepare a nvm_kv_iovec_t structure array for batch operations.
  *
  * Args:
  *   keys (fio_kv_key_t **): An array of pointer to keys.
@@ -259,40 +263,40 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
  *     values (optional).
  *   count (size_t): The number of elements.
  * Returns:
- *   Returns an allocated, populated array of count kv_iovec_t structures to be
- *   used for batch operations.
+ *   Returns an allocated, populated array of count nvm_kv_iovec_t structures
+ *   to be used for batch operations.
  */
-kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t **keys, fio_kv_value_t **values,
-		size_t count)
+nvm_kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t **keys,
+		fio_kv_value_t **values, size_t count)
 {
-	kv_iovec_t *kv_iov;
+	nvm_kv_iovec_t *v;
 
 	assert(keys != NULL);
 	assert(count > 0);
 
-	kv_iov = (kv_iovec_t *)calloc(count, sizeof(kv_iovec_t));
+	v = (nvm_kv_iovec_t *)calloc(count, sizeof(nvm_kv_iovec_t));
 	for (int i=0; i<count; i++) {
 		assert(keys[i] != NULL);
-		assert(keys[i]->length >= 1 && keys[i]->length <= KV_MAX_KEY_SIZE);
+		assert(keys[i]->length >= 1 && keys[i]->length <= NVM_KV_MAX_KEY_SIZE);
 		assert(keys[i]->bytes != NULL);
 
-		kv_iov[i].key = keys[i]->bytes;
-		kv_iov[i].key_len = keys[i]->length;
+		v[i].key = keys[i]->bytes;
+		v[i].key_len = keys[i]->length;
 
 		if (values != NULL) {
 			assert(values[i] != NULL);
 			assert(values[i]->data != NULL);
 			assert(values[i]->info != NULL);
 
-			kv_iov[i].value = values[i]->data;
-			kv_iov[i].value_len = values[i]->info->value_len;
-			kv_iov[i].expiry = values[i]->info->expiry;
-			kv_iov[i].gen_count = values[i]->info->gen_count;
-			kv_iov[i].replace = 1;
+			v[i].value = values[i]->data;
+			v[i].value_len = values[i]->info->value_len;
+			v[i].expiry = values[i]->info->expiry;
+			v[i].gen_count = values[i]->info->gen_count;
+			v[i].replace = 1;
 		}
 	}
 
-	return kv_iov;
+	return v;
 }
 
 /**
@@ -314,16 +318,16 @@ kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t **keys, fio_kv_value_t **values,
 bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
 		fio_kv_value_t **values, size_t count)
 {
-	kv_iovec_t *kv_iov;
+	nvm_kv_iovec_t *v;
 	int ret;
 
 	assert(store != NULL);
 	assert(keys != NULL);
 	assert(values != NULL);
 
-	kv_iov = _fio_kv_prepare_batch(keys, values, count);
-	ret = kv_batch_get(store->kv, store->pool, kv_iov, count);
-	free(kv_iov);
+	v = _fio_kv_prepare_batch(keys, values, count);
+	ret = nvm_kv_batch_get(store->kv, store->pool, v, count);
+	free(v);
 
 	return ret == 0;
 }
@@ -343,16 +347,16 @@ bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
 bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
 		fio_kv_value_t **values, size_t count)
 {
-	kv_iovec_t *kv_iov;
+	nvm_kv_iovec_t *v;
 	int ret;
 
 	assert(store != NULL);
 	assert(keys != NULL);
 	assert(values != NULL);
 
-	kv_iov = _fio_kv_prepare_batch(keys, values, count);
-	ret = kv_batch_put(store->kv, store->pool, kv_iov, count);
-	free(kv_iov);
+	v = _fio_kv_prepare_batch(keys, values, count);
+	ret = nvm_kv_batch_put(store->kv, store->pool, v, count);
+	free(v);
 
 	return ret == 0;
 }
@@ -370,15 +374,15 @@ bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
 bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t **keys,
 		size_t count)
 {
-	kv_iovec_t *kv_iov;
+	nvm_kv_iovec_t *v;
 	int ret;
 
 	assert(store != NULL);
 	assert(keys != NULL);
 
-	kv_iov = _fio_kv_prepare_batch(keys, NULL, count);
-	ret = kv_batch_delete(store->kv, store->pool, kv_iov, count);
-	free(kv_iov);
+	v = _fio_kv_prepare_batch(keys, NULL, count);
+	ret = nvm_kv_batch_delete(store->kv, store->pool, v, count);
+	free(v);
 
 	return ret == 0;
 }
@@ -395,7 +399,7 @@ int fio_kv_iterator(fio_kv_store_t *store)
 {
 	assert(store != NULL);
 
-	return kv_begin(store->kv, store->pool);
+	return nvm_kv_begin(store->kv, store->pool);
 }
 
 /**
@@ -412,7 +416,7 @@ bool fio_kv_next(fio_kv_store_t *store, int iterator)
 	assert(store != NULL);
 	assert(iterator >= 0);
 
-	return kv_next(store->kv, store->pool, iterator) == 0;
+	return nvm_kv_next(store->kv, iterator) == 0;
 }
 
 /**
@@ -433,13 +437,13 @@ bool fio_kv_get_current(fio_kv_store_t *store, int iterator, fio_kv_key_t *key,
 	assert(store != NULL);
 	assert(iterator >= 0);
 	assert(key != NULL);
-	assert(key->length >= 1 && key->length <= KV_MAX_KEY_SIZE);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 	assert(value != NULL);
 	assert(value->data != NULL);
 	assert(value->info != NULL);
 
-	return kv_get_current(store->kv, iterator,
+	return nvm_kv_get_current(store->kv, iterator,
 			key->bytes, &(key->length),
 			value->data, value->info->value_len,
 			value->info) >= 0;
@@ -585,7 +589,7 @@ fio_kv_key_t *__jobject_to_fio_kv_key(JNIEnv *env, jobject _key)
 
 	fio_kv_key_t *key = (fio_kv_key_t *)malloc(sizeof(fio_kv_key_t));
 	key->length = env->GetIntField(_key, _key_field_length);
-	key->bytes = (kv_key_t *)env->GetDirectBufferAddress(
+	key->bytes = (nvm_kv_key_t *)env->GetDirectBufferAddress(
 			env->GetObjectField(_key, _key_field_bytes));
 	return key;
 }
@@ -606,17 +610,17 @@ jobject __fio_kv_key_to_jobject(JNIEnv *env, fio_kv_key_t *key)
 }
 
 /**
- * Convert a KeyValueInfo object into a kv_key_info_t structure.
+ * Convert a KeyValueInfo object into a nvm_kv_key_info_t structure.
  *
- * A new kv_key_info_t structure is allocated and populated. It will need to be
+ * A new nvm_kv_key_info_t structure is allocated and populated. It will need to be
  * freed by the caller when it is no longer needed.
  */
-kv_key_info_t *__jobject_to_kv_key_info(JNIEnv *env, jobject _kvinfo)
+nvm_kv_key_info_t *__jobject_to_nvm_kv_key_info(JNIEnv *env, jobject _kvinfo)
 {
 	assert(env != NULL);
 	assert(_kvinfo != NULL);
 
-	kv_key_info_t *kvinfo = (kv_key_info_t *)malloc(sizeof(kv_key_info_t));
+	nvm_kv_key_info_t *kvinfo = (nvm_kv_key_info_t *)malloc(sizeof(nvm_kv_key_info_t));
 	kvinfo->pool_id = env->GetIntField(_kvinfo, _kvinfo_field_pool_id);
 	kvinfo->key_len = env->GetIntField(_kvinfo, _kvinfo_field_key_len);
 	kvinfo->value_len = env->GetIntField(_kvinfo, _kvinfo_field_value_len);
@@ -626,9 +630,9 @@ kv_key_info_t *__jobject_to_kv_key_info(JNIEnv *env, jobject _kvinfo)
 }
 
 /**
- * Convert a kv_key_info_t structure back into a KeyValueInfo object.
+ * Convert a nvm_kv_key_info_t structure back into a KeyValueInfo object.
  */
-jobject __kv_key_info_to_jobject(JNIEnv *env, kv_key_info_t *info)
+jobject __nvm_kv_key_info_to_jobject(JNIEnv *env, nvm_kv_key_info_t *info)
 {
 	assert(env != NULL);
 	assert(info != NULL);
@@ -639,10 +643,10 @@ jobject __kv_key_info_to_jobject(JNIEnv *env, kv_key_info_t *info)
 }
 
 /**
- * Re-populates the fields of a KeyValueInfo object from a a kv_key_info_t
+ * Re-populates the fields of a KeyValueInfo object from a a nvm_kv_key_info_t
  * structure.
  */
-void __kv_key_info_set_jobject(JNIEnv *env, kv_key_info_t *info, jobject _info)
+void __kv_key_info_set_jobject(JNIEnv *env, nvm_kv_key_info_t *info, jobject _info)
 {
 	assert(env != NULL);
 	assert(info != NULL);
@@ -669,7 +673,7 @@ fio_kv_value_t *__jobject_to_fio_kv_value(JNIEnv *env, jobject _value)
 	fio_kv_value_t *value = (fio_kv_value_t *)malloc(sizeof(fio_kv_value_t));
 	value->data = env->GetDirectBufferAddress(
 			env->GetObjectField(_value, _value_field_data));
-	value->info = __jobject_to_kv_key_info(env,
+	value->info = __jobject_to_nvm_kv_key_info(env,
 			env->GetObjectField(_value, _value_field_info));
 	return value;
 }
@@ -686,7 +690,7 @@ jobject __fio_kv_value_to_jobject(JNIEnv *env, fio_kv_value_t *value)
 	env->SetObjectField(_value, _value_field_data,
 			env->NewDirectByteBuffer(value->data, value->info->value_len));
 	env->SetObjectField(_value, _value_field_info,
-			__kv_key_info_to_jobject(env, value->info));
+			__nvm_kv_key_info_to_jobject(env, value->info));
 	return _value;
 }
 

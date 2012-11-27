@@ -34,8 +34,8 @@ package com.turn.fusionio;
  * Represents the info structure of a key/value mapping.
  *
  * <p>
- * This structure mapping for <tt>kv_key_info_t</tt> comes directly from
- * FusionIO's KV API library.
+ * This structure mapping is for <tt>nvm_kv_key_info_t</tt>, which comes
+ * directly from FusionIO's KV API library.
  * </p>
  *
  * @author mpetazzoni

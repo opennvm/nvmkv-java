@@ -190,3 +190,6 @@ Caveats
   free this memory by calling `free()` on a `Value` object before loosing the
   reference to it. This is the only way by which the memory used by these
   sector-aligned buffers can be recovered.
+
+* Expiry modes are currently not supported by this binding (global expiry isn't
+  yet supported by directKV anyway).

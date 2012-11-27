@@ -52,7 +52,7 @@ import org.testng.annotations.Test;
 @Test
 public class FusionIOAPITest {
 
-	private static final String DEVICE_NAME = "/dev/fct0";
+	private static final String DEVICE_NAME = "/dev/fioa";
 	private static final int POOL_ID = 0;
 	private static final int BATCH_SIZE = 10;
 	private static final int BIG_VALUE_SIZE = 4096;

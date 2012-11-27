@@ -52,12 +52,12 @@ typedef struct {
 
 typedef struct {
 	uint32_t length;
-	kv_key_t *bytes;
+	nvm_kv_key_t *bytes;
 } fio_kv_key_t;
 
 typedef struct {
 	void *data;
-	kv_key_info_t *info;
+	nvm_kv_key_info_t *info;
 } fio_kv_value_t;
 
 
