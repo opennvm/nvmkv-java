@@ -93,6 +93,18 @@ fio_kv_store_t *fio_kv_open(const char *path, const int pool_id);
 void fio_kv_close(fio_kv_store_t *store);
 
 /**
+ * Destroy a key/value store.
+ *
+ * WARNING: this method is data destructive. All pools on the given store, as
+ * well as all the keys and values they contain will be destroyed and not
+ * recoverable. Use with care!
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store to destroy.
+ */
+bool fio_kv_destroy(fio_kv_store_t *store);
+
+/**
  * Allocate sector-aligned memory to hold the given number of bytes.
  *
  * Args:

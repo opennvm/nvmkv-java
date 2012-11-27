@@ -154,6 +154,31 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	}
 
 	/**
+	 * Destroy the key/value store backing this {@link FusionIOAPI}.
+	 *
+	 * <p>
+	 * <b>Warning:</b> this method will destroy all data and all pools in this
+	 * key/value store! Use with care!
+	 * </p>
+	 *
+	 * The FusionIO store will be closed after the operation.
+	 *
+	 * @throws FusionIOException If an error occured while destroying the
+	 *	key/value store.
+	 */
+	public synchronized void destroy() throws FusionIOException {
+		this.open();
+
+		if (!HelperLibrary.fio_kv_destroy(this.store)) {
+			throw new FusionIOException(
+				"Error while destroying the key/value store!",
+				HelperLibrary.fio_kv_get_last_error());
+		}
+
+		this.close();
+	}
+
+	/**
 	 * Retrieve a value from the key/value store.
 	 *
 	 * <p>
@@ -385,6 +410,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 
 		public static native Store fio_kv_open(String device, int pool_id);
 		public static native void fio_kv_close(Store store);
+		public static native boolean fio_kv_destroy(Store store);
 
 		public static native ByteBuffer fio_kv_alloc(int length);
 		public static native void fio_kv_free_value(Value value);

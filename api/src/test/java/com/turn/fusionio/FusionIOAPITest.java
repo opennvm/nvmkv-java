@@ -74,6 +74,13 @@ public class FusionIOAPITest {
 	@BeforeClass
 	public void setUp() throws FusionIOException {
 		this.api = new FusionIOAPI(DEVICE_NAME, POOL_ID);
+		this.api.destroy();
+		assert !this.api.isOpened()
+			: "The key/value store should be closed after destroy!";
+
+		// Need to wait a bit for permission reset on device file.
+		try { Thread.sleep(250); } catch (InterruptedException ie) { }
+
 		for (int i=0; i<BATCH_SIZE; i++) {
 			TEST_KEYS[i] = Key.createFrom(i);
 			TEST_VALUES[i] = Value.get(TEST_DATA.length);

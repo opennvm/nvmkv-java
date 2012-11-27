@@ -131,6 +131,24 @@ void fio_kv_close(fio_kv_store_t *store)
 }
 
 /**
+ * Destroy a key/value store.
+ *
+ * WARNING: this method is data destructive. All pools on the given store, as
+ * well as all the keys and values they contain will be destroyed and not
+ * recoverable. Use with care!
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store to destroy.
+ */
+bool fio_kv_destroy(fio_kv_store_t *store)
+{
+	assert(store != NULL);
+	int ret = nvm_kv_destroy(store->kv);
+	fio_kv_close(store);
+	return ret == 0;
+}
+
+/**
  * Allocate sector-aligned memory to hold the given number of bytes.
  *
  * Args:
@@ -762,6 +780,19 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
 	fio_kv_close(store);
 	__fio_kv_store_set_jobject(env, store, _store);
 	free(store);
+}
+
+/**
+ * bool fio_kv_destroy(Store store);
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1destroy(
+		JNIEnv *env, jclass cls, jobject _store)
+{
+	fio_kv_store_t *store = __jobject_to_fio_kv_store(env, _store);
+	bool ret = fio_kv_destroy(store);
+	__fio_kv_store_set_jobject(env, store, _store);
+	free(store);
+	return (jboolean)ret;
 }
 
 /**

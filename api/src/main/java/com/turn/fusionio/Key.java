@@ -97,7 +97,8 @@ public class Key {
 	 */
 	public long longValue() {
 		if (this.length != 8) {
-			throw new IllegalStateException("Key is not a long!");
+			throw new IllegalStateException("Key is not a long (" +
+				this.bytes + ") !");
 		}
 
 		return this.bytes.getLong(0);

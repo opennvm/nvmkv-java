@@ -33,6 +33,14 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI_HelperLibrary
+ * Method:    fio_kv_destroy
+ * Signature: (Lcom/turn/fusionio/Store;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1destroy
+  (JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI_HelperLibrary
  * Method:    fio_kv_alloc
  * Signature: (I)Ljava/nio/ByteBuffer;
  */
