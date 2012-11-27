@@ -66,10 +66,10 @@ JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
 /*
  * Class:     com_turn_fusionio_FusionIOAPI_HelperLibrary
  * Method:    fio_kv_exists
- * Signature: (Lcom/turn/fusionio/Store;Lcom/turn/fusionio/Key;)Z
+ * Signature: (Lcom/turn/fusionio/Store;Lcom/turn/fusionio/Key;Lcom/turn/fusionio/KeyValueInfo;)I
  */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1exists
-  (JNIEnv *, jclass, jobject, jobject);
+JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1exists
+  (JNIEnv *, jclass, jobject, jobject, jobject);
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI_HelperLibrary

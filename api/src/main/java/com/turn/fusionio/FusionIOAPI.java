@@ -275,9 +275,28 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	 * <em>false</em> otherwise.
 	 */
 	public boolean exists(Key key) throws FusionIOException {
+		return this.exists(key, null);
+	}
+
+	/**
+	 * Tells whether a given key exists in the key/value store.
+	 *
+	 * @param key The key as a {@link Key} object.
+	 * @param info An optional {@link KeyValueInfo} object to be filled with
+	 *	information about the key/value pair, if it exists.
+	 * @return Returns <em>true</em> if a mapping exists for the given key,
+	 * <em>false</em> otherwise.
+	 */
+	public boolean exists(Key key, KeyValueInfo info) throws FusionIOException {
 		this.open();
 
-		return HelperLibrary.fio_kv_exists(this.store, key);
+		int ret = HelperLibrary.fio_kv_exists(this.store, key, info);
+		if (ret < 0) {
+			throw new FusionIOException(
+				"Error while verifying key/value pair presence!");
+		}
+
+		return ret == 1;
 	}
 
 	/**
@@ -372,7 +391,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 
 		public static native int fio_kv_get(Store store, Key key, Value value);
 		public static native int fio_kv_put(Store store, Key key, Value value);
-		public static native boolean fio_kv_exists(Store store, Key key);
+		public static native int fio_kv_exists(Store store, Key key, KeyValueInfo info);
 		public static native boolean fio_kv_delete(Store store, Key key);
 
 		public static native boolean fio_kv_batch_get(Store store, Key[] keys, Value[] values);

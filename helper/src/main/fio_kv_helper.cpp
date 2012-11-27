@@ -236,17 +236,29 @@ int fio_kv_put(const fio_kv_store_t *store, const fio_kv_key_t *key,
  * Args:
  *	 store (fio_kv_store_t *): The key/value store.
  *	 key (fio_kv_key_t *): The key of the mapping to check the existence of.
+ *	 info (nvm_kv_key_info_t *): An optional pointer to a nvm_kv_key_info_t
+ *		structure to fill with key/value pair information if it exists in the
+ *		key/value store.
  * Returns:
- *	 Returns true if a mapping for the given key exists in the key/value store.
+ *	 Returns 1 if a mapping for the given key exists in the key/value store, 0
+ *		if it doesn't or -1 if an error occured.
  */
-bool fio_kv_exists(const fio_kv_store_t *store, const fio_kv_key_t *key)
+int fio_kv_exists(const fio_kv_store_t *store, const fio_kv_key_t *key,
+		nvm_kv_key_info_t *info)
 {
 	assert(store != NULL);
 	assert(key != NULL);
 	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
-	return nvm_kv_exists(store->kv, store->pool, key->bytes, key->length, NULL);
+	// TODO(mpetazzoni): remove once nvm_kv_exists() no longer segfaults when
+	// passed a NULL nvm_kv_key_info_t parameter.
+	nvm_kv_key_info_t _info;
+	if (info == NULL) {
+		info = &_info;
+	}
+
+	return nvm_kv_exists(store->kv, store->pool, key->bytes, key->length, info);
 }
 
 /**
@@ -823,24 +835,6 @@ int __fio_kv_call_kv(JNIEnv *env, jobject _store, jobject _key, jobject _value,
 bool __fio_kv_call_k(JNIEnv *env, jobject _store, jobject _key,
 		bool (*op)(const fio_kv_store_t *, const fio_kv_key_t *))
 {
-	fio_kv_store_t *store;
-	fio_kv_key_t *key;
-	bool ret;
-
-	assert(env != NULL);
-	assert(_store != NULL);
-	assert(_key != NULL);
-	assert(op != NULL);
-
-	store = __jobject_to_fio_kv_store(env, _store);
-	key = __jobject_to_fio_kv_key(env, _key);
-
-	// Call the operation.
-	ret = op(store, key);
-
-	free(store);
-	free(key);
-	return ret;
 }
 
 /**
@@ -862,12 +856,32 @@ JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
 }
 
 /**
- * boolean fio_kv_exists(Store store, Key key);
+ * int fio_kv_exists(Store store, Key key, KeyValueInfo info);
  */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1exists
-  (JNIEnv *env, jclass cls, jobject _store, jobject _key)
+JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1exists
+  (JNIEnv *env, jclass cls, jobject _store, jobject _key, jobject _info)
 {
-	return (jboolean)__fio_kv_call_k(env, _store, _key, fio_kv_exists);
+	fio_kv_store_t *store;
+	fio_kv_key_t *key;
+	nvm_kv_key_info_t *info;
+	int ret;
+
+	assert(env != NULL);
+	assert(_store != NULL);
+	assert(_key != NULL);
+
+	store = __jobject_to_fio_kv_store(env, _store);
+	key = __jobject_to_fio_kv_key(env, _key);
+	info = _info != NULL
+		? __jobject_to_nvm_kv_key_info(env, _info)
+		: NULL;
+
+	ret = fio_kv_exists(store, key, info);
+
+	free(store);
+	free(key);
+	free(info);
+	return (jint)ret;
 }
 
 /**
@@ -876,7 +890,22 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary
 JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1delete
   (JNIEnv *env, jclass cls, jobject _store, jobject _key)
 {
-	return (jboolean)__fio_kv_call_k(env, _store, _key, fio_kv_delete);
+	fio_kv_store_t *store;
+	fio_kv_key_t *key;
+	bool ret;
+
+	assert(env != NULL);
+	assert(_store != NULL);
+	assert(_key != NULL);
+
+	store = __jobject_to_fio_kv_store(env, _store);
+	key = __jobject_to_fio_kv_key(env, _key);
+
+	ret = fio_kv_delete(store, key);
+
+	free(store);
+	free(key);
+	return (jboolean)ret;
 }
 
 /**
