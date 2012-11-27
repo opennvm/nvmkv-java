@@ -89,6 +89,8 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 	private final int poolId;
 	private Store store;
 
+	private volatile boolean opened;
+
 	/**
 	 * Instantiate a new FusionIO access API facade.
 	 *
@@ -100,6 +102,7 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 		this.device = device;
 		this.poolId = poolId;
 		this.store = null;
+		this.opened = false;
 	}
 
 	/**
@@ -108,7 +111,7 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 	 * @throws FusionIOException If the FusionIO device cannot be opened.
 	 */
 	public void open() throws FusionIOException {
-		if (this.isOpened()) {
+		if (this.opened) {
 			return;
 		}
 
@@ -117,6 +120,8 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 			if (this.store == null) {
 				throw new FusionIOException("Could not open device for key/value API access!");
 			}
+
+			this.opened = true;
 		}
 	}
 
@@ -125,7 +130,7 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 	 * not.
 	 */
 	public boolean isOpened() {
-		return this.store != null;
+		return this.opened;
 	}
 
 	/**
@@ -136,11 +141,12 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 	 * </p>
 	 */
 	public synchronized void close() throws FusionIOException {
-		if (this.isOpened()) {
+		if (this.opened) {
 			HelperLibrary.fio_kv_close(this.store);
 		}
 
 		this.store = null;
+		this.opened = false;
 	}
 
 	/**
