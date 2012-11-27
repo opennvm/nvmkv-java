@@ -1051,4 +1051,13 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary
 	return (jboolean)ret;
 }
 
+/**
+ * int fio_kv_get_last_error();
+ */
+JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1get_1last_1error
+  (JNIEnv *env, jclass cls)
+{
+	return (jint)fio_kv_get_last_error();
+}
+
 #endif /* __FIO_KV_HELPER_USE_JNI__ */

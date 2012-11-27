@@ -127,6 +127,14 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary
 JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1get_1current
   (JNIEnv *, jclass, jobject, jint, jobject, jobject);
 
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI_HelperLibrary
+ * Method:    fio_kv_get_last_error
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1get_1last_1error
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

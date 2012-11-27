@@ -119,7 +119,9 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 		synchronized (this) {
 			this.store = HelperLibrary.fio_kv_open(this.device, this.poolId);
 			if (this.store == null) {
-				throw new FusionIOException("Could not open device for key/value API access!");
+				throw new FusionIOException(
+					"Could not open device for key/value API access!",
+					HelperLibrary.fio_kv_get_last_error());
 			}
 
 			this.opened = true;
@@ -380,5 +382,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 		public static native int fio_kv_iterator(Store store);
 		public static native boolean fio_kv_next(Store store, int iterator);
 		public static native boolean fio_kv_get_current(Store store, int iterator, Key key, Value value);
+
+		public static native int fio_kv_get_last_error();
 	};
 }
