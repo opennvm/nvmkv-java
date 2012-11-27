@@ -57,34 +57,48 @@
 
 
 /**
- * Open a Fusion-IO device for key/value store access.
+ * Open a Fusion-IO device or directFS file for key/value store access.
  *
- * The user executing this program needs read-write access to the given device.
+ * The user executing this program needs read-write access to the given device
+ * or directFS file. If the given path starts with '/dev' it is considered to
+ * point at a raw Fusion-IO device. Otherwise it is considered to be a directFS
+ * file path, in which case the pool_id parameter is ignored.
  *
  * Args:
- *	 device (const char *): Path to the Fusion-IO device file.
+ *	 path (const char *): Path to the Fusion-IO device file.
+ *	 pool_id (int): The ID of the pool to use of the device (when not using
+ *		directFS mode). Should be 0 either way until pools are properly supported
+ *		by this library.
  * Returns:
  *	 Returns a fio_kv_store_t structure containing the file descriptor
  *	 associated with the open device and the KV store ID used by the KV SDK
  *	 API.
  */
-fio_kv_store_t *fio_kv_open(const char *device, int pool_id)
+fio_kv_store_t *fio_kv_open(const char *path, const int pool_id)
 {
 	fio_kv_store_t *store;
+	int max_pools = FIO_KV_MAX_POOLS;
+	int flags = O_RDWR | O_DIRECT;
 
-	assert(device != NULL);
+	assert(path != NULL);
 	assert(pool_id >= 0);
+
+	if (strncmp(path, "/dev", 4) == 0) {
+		assert(pool_id == 0);
+		max_pools = 0;
+		flags |= O_LARGEFILE;
+	}
 
 	store	= (fio_kv_store_t *)calloc(1, sizeof(fio_kv_store_t));
 
-	store->fd = open(device, O_RDWR | O_DIRECT);
+	store->fd = open(path, flags);
 	if (store->fd < 0) {
 		free(store);
 		return NULL;
 	}
 
-	store->kv = nvm_kv_create(store->fd, FIO_KV_API_VERSION,
-			FIO_KV_MAX_POOLS, KV_DISABLE_EXPIRY, false);
+	store->kv = nvm_kv_create(store->fd, FIO_KV_API_VERSION, max_pools,
+			KV_DISABLE_EXPIRY, false);
 	if (store->kv <= 0) {
 		free(store);
 		return NULL;
