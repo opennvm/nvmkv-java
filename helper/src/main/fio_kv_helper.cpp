@@ -139,7 +139,7 @@ void fio_kv_close(fio_kv_store_t *store)
  *	 A pointer to sector-aligned, allocated memory that can hold up to length
  *	 bytes.
  */
-void *fio_kv_alloc(uint32_t length)
+void *fio_kv_alloc(const uint32_t length)
 {
 	void *p;
 
@@ -183,8 +183,8 @@ void fio_kv_free_value(fio_kv_value_t *value)
  * Returns:
  *	 The number of bytes read, or -1 if the read failed.
  */
-int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
-		fio_kv_value_t *value)
+int fio_kv_get(const fio_kv_store_t *store, const fio_kv_key_t *key,
+		const fio_kv_value_t *value)
 {
 	assert(store != NULL);
 	assert(key != NULL);
@@ -213,8 +213,8 @@ int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
  * Returns:
  *	 The number of bytes written, or -1 in case of an error.
  */
-int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
-		fio_kv_value_t *value)
+int fio_kv_put(const fio_kv_store_t *store, const fio_kv_key_t *key,
+		const fio_kv_value_t *value)
 {
 	assert(store != NULL);
 	assert(key != NULL);
@@ -239,7 +239,7 @@ int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
  * Returns:
  *	 Returns true if a mapping for the given key exists in the key/value store.
  */
-bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key)
+bool fio_kv_exists(const fio_kv_store_t *store, const fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
@@ -258,7 +258,7 @@ bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key)
  * Returns:
  *	 Returns true if the mapping was successfuly removed, false otherwise.
  */
-bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
+bool fio_kv_delete(const fio_kv_store_t *store, const fio_kv_key_t *key)
 {
 	assert(store != NULL);
 	assert(key != NULL);
@@ -280,8 +280,8 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key)
  *   Returns an allocated, populated array of count nvm_kv_iovec_t structures
  *   to be used for batch operations.
  */
-nvm_kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t **keys,
-		fio_kv_value_t **values, size_t count)
+nvm_kv_iovec_t *_fio_kv_prepare_batch(const fio_kv_key_t **keys,
+		const fio_kv_value_t **values, const size_t count)
 {
 	nvm_kv_iovec_t *v;
 
@@ -329,8 +329,8 @@ nvm_kv_iovec_t *_fio_kv_prepare_batch(fio_kv_key_t **keys,
  * Returns:
  *   Returns true if the batch retrieval was successful, false otherwise.
  */
-bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
-		fio_kv_value_t **values, size_t count)
+bool fio_kv_batch_get(const fio_kv_store_t *store, const fio_kv_key_t **keys,
+		const fio_kv_value_t **values, const size_t count)
 {
 	nvm_kv_iovec_t *v;
 	int ret;
@@ -358,8 +358,8 @@ bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns true if the batch insertion was successful, false otherwise.
  */
-bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
-		fio_kv_value_t **values, size_t count)
+bool fio_kv_batch_put(const fio_kv_store_t *store, const fio_kv_key_t **keys,
+		const fio_kv_value_t **values, const size_t count)
 {
 	nvm_kv_iovec_t *v;
 	int ret;
@@ -385,8 +385,8 @@ bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns true if the batch insertion was successful, false otherwise.
  */
-bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t **keys,
-		size_t count)
+bool fio_kv_batch_delete(const fio_kv_store_t *store,
+		const fio_kv_key_t **keys, const size_t count)
 {
 	nvm_kv_iovec_t *v;
 	int ret;
@@ -409,7 +409,7 @@ bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns the new iterator's ID, or -1 if an iterator could not be created.
  */
-int fio_kv_iterator(fio_kv_store_t *store)
+int fio_kv_iterator(const fio_kv_store_t *store)
 {
 	assert(store != NULL);
 
@@ -425,7 +425,7 @@ int fio_kv_iterator(fio_kv_store_t *store)
  * Returns:
  *   Returns true if the operation was successful, false otherwise.
  */
-bool fio_kv_next(fio_kv_store_t *store, int iterator)
+bool fio_kv_next(const fio_kv_store_t *store, const int iterator)
 {
 	assert(store != NULL);
 	assert(iterator >= 0);
@@ -445,8 +445,8 @@ bool fio_kv_next(fio_kv_store_t *store, int iterator)
  * Returns:
  *   Returns true if the operation was successful, false otherwise.
  */
-bool fio_kv_get_current(fio_kv_store_t *store, int iterator, fio_kv_key_t *key,
-		fio_kv_value_t *value)
+bool fio_kv_get_current(const fio_kv_store_t *store, const int iterator,
+		fio_kv_key_t *key, const fio_kv_value_t *value)
 {
 	assert(store != NULL);
 	assert(iterator >= 0);
@@ -766,7 +766,8 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio
  * operation, frees the structures and returns the result of the operation.
  */
 int __fio_kv_call_kv(JNIEnv *env, jobject _store, jobject _key, jobject _value,
-		int (*op)(fio_kv_store_t *, fio_kv_key_t *, fio_kv_value_t *))
+		int (*op)(const fio_kv_store_t *, const fio_kv_key_t *,
+			const fio_kv_value_t *))
 {
 	fio_kv_store_t *store;
 	fio_kv_key_t *key;
@@ -804,7 +805,7 @@ int __fio_kv_call_kv(JNIEnv *env, jobject _store, jobject _key, jobject _value,
  * operation, frees the structures and returns the result of the operation.
  */
 bool __fio_kv_call_k(JNIEnv *env, jobject _store, jobject _key,
-		bool (*op)(fio_kv_store_t *, fio_kv_key_t *))
+		bool (*op)(const fio_kv_store_t *, const fio_kv_key_t *))
 {
 	fio_kv_store_t *store;
 	fio_kv_key_t *key;
@@ -872,7 +873,8 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary
  */
 bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _store, jobjectArray _keys,
 		jobjectArray _values,
-		bool (*op)(fio_kv_store_t *, fio_kv_key_t **, fio_kv_value_t **, size_t))
+		bool (*op)(const fio_kv_store_t *, const fio_kv_key_t **,
+			const fio_kv_value_t **, const size_t))
 {
 	int count;
 	bool ret;
@@ -897,7 +899,8 @@ bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _store, jobjectArray _keys,
 	}
 
 	// Call the batch operation on the sets of keys and values.
-	ret = op(store, keys, values, count);
+	ret = op(store, (const fio_kv_key_t **)keys, (const fio_kv_value_t **)values,
+			count);
 
 	for (int i=0; i<count; i++) {
 		__kv_key_info_set_jobject(env, values[i]->info,
@@ -924,7 +927,7 @@ bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _store, jobjectArray _keys,
  * operation, frees the structures and returns the result of the operation.
  */
 bool __fio_kv_batch_call_k(JNIEnv *env, jobject _store, jobjectArray _keys,
-		bool (*op)(fio_kv_store_t *, fio_kv_key_t **, size_t))
+		bool (*op)(const fio_kv_store_t *, const fio_kv_key_t **, const size_t))
 {
 	int count;
 	bool ret;
@@ -945,7 +948,7 @@ bool __fio_kv_batch_call_k(JNIEnv *env, jobject _store, jobjectArray _keys,
 	}
 
 	// Call the batch operation on the set of keys.
-	ret = op(store, keys, count);
+	ret = op(store, (const fio_kv_key_t **)keys, count);
 
 	for (int i=0; i<count; i++) {
 		free(keys[i]);

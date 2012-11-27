@@ -101,7 +101,7 @@ void fio_kv_close(fio_kv_store_t *store);
  *	 A pointer to sector-aligned, allocated memory that can hold up to length
  *	 bytes.
  */
-void *fio_kv_alloc(uint32_t length);
+void *fio_kv_alloc(const uint32_t length);
 
 /**
  * Free the memory allocated for the 'data' field of a fio_kv_value_t
@@ -130,8 +130,8 @@ void fio_kv_free_value(fio_kv_value_t *value);
  * Returns:
  *	 The number of bytes read, or -1 if the read failed.
  */
-int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
-		fio_kv_value_t *value);
+int fio_kv_get(const fio_kv_store_t *store, const fio_kv_key_t *key,
+		const fio_kv_value_t *value);
 
 /**
  * Insert (or replace) a key/value pair into the store.
@@ -146,8 +146,8 @@ int fio_kv_get(fio_kv_store_t *store, fio_kv_key_t *key,
  * Returns:
  *	 The number of bytes written, or -1 in case of an error.
  */
-int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
-		fio_kv_value_t *value);
+int fio_kv_put(const fio_kv_store_t *store, const fio_kv_key_t *key,
+		const fio_kv_value_t *value);
 
 /**
  * Tells whether a specific key exists in a key/value store.
@@ -158,7 +158,7 @@ int fio_kv_put(fio_kv_store_t *store, fio_kv_key_t *key,
  * Returns:
  *	 Returns true if a mapping for the given key exists in the key/value store.
  */
-bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key);
+bool fio_kv_exists(const fio_kv_store_t *store, const fio_kv_key_t *key);
 
 /**
  * Removes a key/value pair from the key/value store.
@@ -169,7 +169,7 @@ bool fio_kv_exists(fio_kv_store_t *store, fio_kv_key_t *key);
  * Returns:
  *	 Returns true if the mapping was successfuly removed, false otherwise.
  */
-bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key);
+bool fio_kv_delete(const fio_kv_store_t *store, const fio_kv_key_t *key);
 
 /**
  * Retrieve a set of values corresponding to the given set of keys in one
@@ -187,8 +187,8 @@ bool fio_kv_delete(fio_kv_store_t *store, fio_kv_key_t *key);
  * Returns:
  *   Returns true if the batch retrieval was successful, false otherwise.
  */
-bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
-		fio_kv_value_t **values, size_t count);
+bool fio_kv_batch_get(const fio_kv_store_t *store, const fio_kv_key_t **keys,
+		const fio_kv_value_t **values, const size_t count);
 
 /**
  * Insert (or replace) a set of key/value pairs in one batch operation.
@@ -202,8 +202,8 @@ bool fio_kv_batch_get(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns true if the batch insertion was successful, false otherwise.
  */
-bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
-		fio_kv_value_t **values, size_t count);
+bool fio_kv_batch_put(const fio_kv_store_t *store, const fio_kv_key_t **keys,
+		const fio_kv_value_t **values, const size_t count);
 
 /**
  * Remove a set of key/value pairs in one batch operation.
@@ -215,8 +215,8 @@ bool fio_kv_batch_put(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns true if the batch insertion was successful, false otherwise.
  */
-bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t **keys,
-		size_t count);
+bool fio_kv_batch_delete(const fio_kv_store_t *store,
+		const fio_kv_key_t **keys, const size_t count);
 
 /**
  * Create an iterator on a key/value store.
@@ -226,7 +226,7 @@ bool fio_kv_batch_delete(fio_kv_store_t *store, fio_kv_key_t **keys,
  * Returns:
  *   Returns the new iterator's ID, or -1 if an iterator could not be created.
  */
-int fio_kv_iterator(fio_kv_store_t *store);
+int fio_kv_iterator(const fio_kv_store_t *store);
 
 /**
  * Move an iterator to the following element in a key/value store.
@@ -237,7 +237,7 @@ int fio_kv_iterator(fio_kv_store_t *store);
  * Returns:
  *   Returns true if the operation was successful, false otherwise.
  */
-bool fio_kv_next(fio_kv_store_t *store, int iterator);
+bool fio_kv_next(const fio_kv_store_t *store, const int iterator);
 
 /**
  * Retrieve the key and value at the current iterator's position.
@@ -251,8 +251,8 @@ bool fio_kv_next(fio_kv_store_t *store, int iterator);
  * Returns:
  *   Returns true if the operation was successful, false otherwise.
  */
-bool fio_kv_get_current(fio_kv_store_t *store, int iterator, fio_kv_key_t *key,
-		fio_kv_value_t *value);
+bool fio_kv_get_current(const fio_kv_store_t *store, const int iterator,
+		fio_kv_key_t *key, const fio_kv_value_t *value);
 
 /**
  * Retrieve the last errno value.
