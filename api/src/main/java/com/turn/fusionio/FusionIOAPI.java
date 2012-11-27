@@ -30,6 +30,7 @@
  */
 package com.turn.fusionio;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
@@ -45,7 +46,7 @@ import java.util.Map;
  *
  * @author mpetazzoni
  */
-public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
+public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 
 	/**
 	 * Maximum key size supported by FusionIO.
@@ -140,6 +141,7 @@ public class FusionIOAPI implements Iterable<Map.Entry<Key, Value>> {
 	 * If the key/value store is already closed, this method does nothing.
 	 * </p>
 	 */
+	@Override
 	public synchronized void close() throws FusionIOException {
 		if (this.opened) {
 			HelperLibrary.fio_kv_close(this.store);
