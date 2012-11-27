@@ -1069,9 +1069,9 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary
 	fio_kv_key_t *key = __jobject_to_fio_kv_key(env, _key);
 	fio_kv_value_t *value = __jobject_to_fio_kv_value(env, _value);
 
-	bool ret = store && key && value &&
-		fio_kv_get_current(store, (int)_iterator, key, value);
+	bool ret = fio_kv_get_current(store, (int)_iterator, key, value);
 
+	env->SetIntField(_key, _key_field_length, key->length);
 	__kv_key_info_set_jobject(env, value->info,
 		env->GetObjectField(_value, _value_field_info));
 
