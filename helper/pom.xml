@@ -47,7 +47,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <native.source.dir>${project.basedir}/src/main</native.source.dir>
-    <fio_kv_helper.gcc.extraargs>-DNDEBUG</fio_kv_helper.gcc.extraargs>
+    <fio_kv_helper.gcc.extraargs>-O2 -DNDEBUG</fio_kv_helper.gcc.extraargs>
   </properties>
 
   <build>
@@ -70,7 +70,7 @@
           </sources>
 
           <compilerStartOptions>
-            <compilerStartOption>-ansi -pedantic -pedantic-errors -Werror -O2</compilerStartOption>
+            <compilerStartOption>-ansi -pedantic -pedantic-errors -Werror</compilerStartOption>
             <compilerStartOption>-fPIC -I${java.home}/../include/</compilerStartOption>
             <compilerStartOption>${fio_kv_helper.gcc.extraargs}</compilerStartOption>
           </compilerStartOptions>
