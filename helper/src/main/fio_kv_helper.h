@@ -72,8 +72,8 @@ typedef struct {
  * Args:
  *	 path (const char *): Path to the Fusion-IO device file.
  *	 pool_id (int): The ID of the pool to use of the device (when not using
- *		directFS mode). Should be 0 either way until pools are properly supported
- *		by this library.
+ *	   directFS mode). Should be 0 either way until pools are properly supported
+ *	   by this library.
  * Returns:
  *	 Returns a fio_kv_store_t structure containing the file descriptor
  *	 associated with the open device and the KV store ID used by the KV SDK
@@ -123,10 +123,10 @@ void fio_kv_free_value(fio_kv_value_t *value);
  * fio_kv_alloc().
  *
  * Args:
- *	 store (fio_kv_store_t *): The key/value store.
- *	 key (fio_kv_key_t *): The key.
- *	 value (fio_kv_value_t *): An allocated value structure to hold the
- *		 result.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	key (fio_kv_key_t *): The key.
+ *	value (fio_kv_value_t *): An allocated value structure to hold the
+ *	  result.
  * Returns:
  *	 The number of bytes read, or -1 if the read failed.
  */
@@ -153,14 +153,14 @@ int fio_kv_put(const fio_kv_store_t *store, const fio_kv_key_t *key,
  * Tell whether a specific key exists in a key/value store.
  *
  * Args:
- *	 store (fio_kv_store_t *): The key/value store.
- *	 key (fio_kv_key_t *): The key of the mapping to check the existence of.
- *	 info (nvm_kv_key_info_t *): An optional pointer to a nvm_kv_key_info_t
- *		structure to fill with key/value pair information if it exists in the
- *		key/value store.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	key (fio_kv_key_t *): The key of the mapping to check the existence of.
+ *	info (nvm_kv_key_info_t *): An optional pointer to a nvm_kv_key_info_t
+ *	  structure to fill with key/value pair information if it exists in the
+ *	  key/value store.
  * Returns:
- *	 Returns 1 if a mapping for the given key exists in the key/value store, 0
- *		if it doesn't or -1 if an error occured.
+ *	Returns 1 if a mapping for the given key exists in the key/value store, 0
+ *	  if it doesn't or -1 if an error occured.
  */
 int fio_kv_exists(const fio_kv_store_t *store, const fio_kv_key_t *key,
 		nvm_kv_key_info_t *info);
@@ -184,13 +184,13 @@ bool fio_kv_delete(const fio_kv_store_t *store, const fio_kv_key_t *key);
  * each value.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
- *   keys (fio_kv_key_t **): An array of pointer to the keys to retrieve.
- *   values (fio_kv_value_t **): An array of pointers to allocated value
- *     structures to hold the results.
- *   count (size_t): The number of key/value pairs.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	keys (fio_kv_key_t **): An array of pointer to the keys to retrieve.
+ *	values (fio_kv_value_t **): An array of pointers to allocated value
+ *	  structures to hold the results.
+ *	  count (size_t): The number of key/value pairs.
  * Returns:
- *   Returns true if the batch retrieval was successful, false otherwise.
+ *	Returns true if the batch retrieval was successful, false otherwise.
  */
 bool fio_kv_batch_get(const fio_kv_store_t *store, const fio_kv_key_t **keys,
 		const fio_kv_value_t **values, const size_t count);
@@ -199,13 +199,13 @@ bool fio_kv_batch_get(const fio_kv_store_t *store, const fio_kv_key_t **keys,
  * Insert (or replace) a set of key/value pairs in one batch operation.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
- *   keys (fio_kv_key_t **): An array of pointers to the keys to insert.
- *   values (fio_kv_value_t **): An array of pointers to the corresponding
- *     values.
- *   count (size_t): The number of key/value pairs.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	keys (fio_kv_key_t **): An array of pointers to the keys to insert.
+ *	values (fio_kv_value_t **): An array of pointers to the corresponding
+ *	  values.
+ *	count (size_t): The number of key/value pairs.
  * Returns:
- *   Returns true if the batch insertion was successful, false otherwise.
+ *	Returns true if the batch insertion was successful, false otherwise.
  */
 bool fio_kv_batch_put(const fio_kv_store_t *store, const fio_kv_key_t **keys,
 		const fio_kv_value_t **values, const size_t count);
@@ -214,11 +214,11 @@ bool fio_kv_batch_put(const fio_kv_store_t *store, const fio_kv_key_t **keys,
  * Remove a set of key/value pairs in one batch operation.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
- *   keys (fio_kv_key_t **): An array of pointers to the keys to remove.
- *   count (size_t): The number of key/value pairs.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	keys (fio_kv_key_t **): An array of pointers to the keys to remove.
+ *	count (size_t): The number of key/value pairs.
  * Returns:
- *   Returns true if the batch insertion was successful, false otherwise.
+ *	Returns true if the batch insertion was successful, false otherwise.
  */
 bool fio_kv_batch_delete(const fio_kv_store_t *store,
 		const fio_kv_key_t **keys, const size_t count);
@@ -227,9 +227,10 @@ bool fio_kv_batch_delete(const fio_kv_store_t *store,
  * Create an iterator on a key/value store.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
+ *	store (fio_kv_store_t *): The key/value store.
  * Returns:
- *   Returns the new iterator's ID, or -1 if an iterator could not be created.
+ *	Returns the new iterator's ID, or -1 if an iterator could not be
+ *	  created.
  */
 int fio_kv_iterator(const fio_kv_store_t *store);
 
@@ -237,10 +238,10 @@ int fio_kv_iterator(const fio_kv_store_t *store);
  * Move an iterator to the following element in a key/value store.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
- *   iterator (int): The ID of the iterator to advance.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	iterator (int): The ID of the iterator to advance.
  * Returns:
- *   Returns true if the operation was successful, false otherwise.
+ *	Returns true if the operation was successful, false otherwise.
  */
 bool fio_kv_next(const fio_kv_store_t *store, const int iterator);
 
@@ -248,13 +249,14 @@ bool fio_kv_next(const fio_kv_store_t *store, const int iterator);
  * Retrieve the key and value at the current iterator's position.
  *
  * Args:
- *   store (fio_kv_store_t *): The key/value store.
- *   iterator (int): The ID of the iterator.
- *   key (fio_kv_key_t *): An allocated key structure to hold the current key.
- *   value (fio_kv_value_t *): An allocated value structure to hold the current
- *		value.
+ *	store (fio_kv_store_t *): The key/value store.
+ *	iterator (int): The ID of the iterator.
+ *	key (fio_kv_key_t *): An allocated key structure to hold the current
+ *	  key.
+ *	value (fio_kv_value_t *): An allocated value structure to hold the
+ * 	  current value.
  * Returns:
- *   Returns true if the operation was successful, false otherwise.
+ *	Returns true if the operation was successful, false otherwise.
  */
 bool fio_kv_get_current(const fio_kv_store_t *store, const int iterator,
 		fio_kv_key_t *key, const fio_kv_value_t *value);
@@ -266,7 +268,7 @@ bool fio_kv_get_current(const fio_kv_store_t *store, const int iterator,
  * that the returned value matches the last error.
  *
  * Returns:
- *	 Returns the last errno value.
+ *	Returns the last errno value.
  */
 int fio_kv_get_last_error(void);
 
