@@ -169,12 +169,14 @@ public class FusionIOAPITest {
 	public void testBatchRemove() throws FusionIOException {
 		this.api.put(TEST_KEYS, TEST_VALUES);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			assert this.api.exists(TEST_KEYS[i]);
+			assert this.api.exists(TEST_KEYS[i])
+				: "Key/value pair #" + i + " should have been inserted!";
 		}
 
 		this.api.remove(TEST_KEYS);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			assert !this.api.exists(TEST_KEYS[i]);
+			assert !this.api.exists(TEST_KEYS[i])
+				: "Key/value pair #" + i + " should have been removed!";
 		}
 	}
 
@@ -183,7 +185,8 @@ public class FusionIOAPITest {
 
 		int count = 0;
 		for (Map.Entry<Key, Value> pair : this.api) {
-			assert count < TEST_VALUES.length;
+			assert count < TEST_VALUES.length
+				: "Iteration returned too many items!";
 			Assert.assertEquals(
 				pair.getValue().getByteBuffer(),
 				TEST_VALUES[(int)pair.getKey().longValue()].getByteBuffer(),
