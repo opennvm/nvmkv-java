@@ -83,15 +83,15 @@ fio_kv_store_t *fio_kv_open(const char *path, const int pool_id)
 	assert(path != NULL);
 	assert(pool_id >= 0);
 
-	if (strncmp(path, "/dev", 4) == 0) {
+	store = (fio_kv_store_t *)calloc(1, sizeof(fio_kv_store_t));
+
+	if (strncmp(path, "/dev", 4) != 0) {
 		assert(pool_id == 0);
 		max_pools = 0;
-		flags |= O_LARGEFILE;
+		flags |= O_LARGEFILE | O_CREAT;
 	}
 
-	store	= (fio_kv_store_t *)calloc(1, sizeof(fio_kv_store_t));
-
-	store->fd = open(path, flags);
+	store->fd = open(path, flags, S_IRUSR | S_IWUSR);
 	if (store->fd < 0) {
 		free(store);
 		return NULL;
@@ -756,14 +756,14 @@ jobject __fio_kv_value_to_jobject(JNIEnv *env, fio_kv_value_t *value)
 }
 
 /**
- * Store fio_kv_open(String device, int pool_id);
+ * Store fio_kv_open(String path, int pool_id);
  */
 JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_00024HelperLibrary_fio_1kv_1open(
-		JNIEnv *env, jclass cls, jstring _device, jint _pool_id)
+		JNIEnv *env, jclass cls, jstring _path, jint _pool_id)
 {
-	const char *device = env->GetStringUTFChars(_device, 0);
-	fio_kv_store_t *store = fio_kv_open(device, (int)_pool_id);
-	env->ReleaseStringUTFChars(_device, device);
+	const char *path = env->GetStringUTFChars(_path, 0);
+	fio_kv_store_t *store = fio_kv_open(path, (int)_pool_id);
+	env->ReleaseStringUTFChars(_path, path);
 
 	jobject _store = store ? __fio_kv_store_to_jobject(env, store) : NULL;
 	free(store);

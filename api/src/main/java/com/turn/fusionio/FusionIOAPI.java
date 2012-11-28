@@ -31,6 +31,7 @@
 package com.turn.fusionio;
 
 import java.io.Closeable;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map;
@@ -86,7 +87,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	 */
 	private static final String LIBRARY_NAME = "fio_kv_helper";
 
-	private final String device;
+	private final String path;
 	private final int poolId;
 	private Store store;
 
@@ -95,12 +96,12 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	/**
 	 * Instantiate a new FusionIO access API facade.
 	 *
-	 * @param device The device filename of the FusionIO device.
+	 * @param path The FusionIO device filename or directFS filenam path.
 	 * @param poolId The ID of the key/value pool to use on the device.
 	 * @throws UnsupportedOperationException If FusionIO storage is disabled.
 	 */
-	public FusionIOAPI(String device, int poolId) {
-		this.device = device;
+	public FusionIOAPI(String path, int poolId) {
+		this.path = path;
 		this.poolId = poolId;
 		this.store = null;
 		this.opened = false;
@@ -109,7 +110,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	/**
 	 * Open the FusionIO key/value store backing this {@link FusionIOAPI}.
 	 *
-	 * @throws FusionIOException If the FusionIO device cannot be opened.
+	 * @throws FusionIOException If the key/value store cannot be opened.
 	 */
 	public void open() throws FusionIOException {
 		if (this.opened) {
@@ -117,10 +118,10 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 		}
 
 		synchronized (this) {
-			this.store = HelperLibrary.fio_kv_open(this.device, this.poolId);
+			this.store = HelperLibrary.fio_kv_open(this.path, this.poolId);
 			if (this.store == null) {
 				throw new FusionIOException(
-					"Could not open device for key/value API access!",
+					"Could not open file or device for key/value API access!",
 					HelperLibrary.fio_kv_get_last_error());
 			}
 
@@ -129,7 +130,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	}
 
 	/**
-	 * Tells whether the FusionIO device was opened for access by this API or
+	 * Tells whether the key/value store was opened for access by this API or
 	 * not.
 	 */
 	public boolean isOpened() {
@@ -168,6 +169,14 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 	 */
 	public synchronized void destroy() throws FusionIOException {
 		this.open();
+
+		// TODO(mpetazzoni): remove this check once nvm_kv_destroy()'s behavior
+		// for directFS-based key/value stores has been defined.
+		if (!this.path.startsWith("/dev")) {
+			this.close();
+			new File(this.path).delete();
+			return;
+		}
 
 		if (!HelperLibrary.fio_kv_destroy(this.store)) {
 			throw new FusionIOException(
@@ -379,14 +388,14 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 		}
 
 		FusionIOAPI other = (FusionIOAPI) o;
-		return this.device.equals(other.device) && this.poolId == other.poolId;
+		return this.path.equals(other.path) && this.poolId == other.poolId;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("fusionio-api(device=%s,pool=%d,opened=%s)",
-			this.device, this.poolId,
-			(this.isOpened() ? this.store.toString() : "no"));
+		return String.format("fusionio-api(%s:%d, %s)",
+			this.path, this.poolId,
+			(this.isOpened() ? this.store.toString() : "closed"));
 	}
 
 	/**
@@ -408,7 +417,7 @@ public class FusionIOAPI implements Closeable, Iterable<Map.Entry<Key, Value>> {
 
 		public static native void fio_kv_init_jni_cache();
 
-		public static native Store fio_kv_open(String device, int pool_id);
+		public static native Store fio_kv_open(String path, int pool_id);
 		public static native void fio_kv_close(Store store);
 		public static native boolean fio_kv_destroy(Store store);
 
