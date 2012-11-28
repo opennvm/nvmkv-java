@@ -524,26 +524,26 @@ int fio_kv_get_last_error(void)
 static jclass _store_cls;
 static jmethodID _store_cstr;
 static jfieldID _store_field_fd,
-								_store_field_kv,
-								_store_field_pool;
+                _store_field_kv,
+                _store_field_pool;
 
 static jclass _key_cls;
 static jmethodID _key_cstr;
 static jfieldID _key_field_length,
-								_key_field_bytes;
+                _key_field_bytes;
 
 static jclass _value_cls;
 static jmethodID _value_cstr;
 static jfieldID _value_field_data,
-								_value_field_info;
+                _value_field_info;
 
 static jclass _kvinfo_cls;
 static jmethodID _kvinfo_cstr;
 static jfieldID _kvinfo_field_pool_id,
-								_kvinfo_field_key_len,
-								_kvinfo_field_value_len,
-								_kvinfo_field_expiry,
-								_kvinfo_field_gen_count;
+                _kvinfo_field_key_len,
+                _kvinfo_field_value_len,
+                _kvinfo_field_expiry,
+                _kvinfo_field_gen_count;
 
 /**
  * Initializes the JNI class, method and field IDs.
