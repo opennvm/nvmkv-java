@@ -45,11 +45,31 @@ import java.nio.ByteOrder;
  */
 public class Key {
 
+	/**
+	 * Maximum key size supported by FusionIO.
+	 *
+	 * <p>
+	 * The maximum key size is 128 bytes.
+	 * </p>
+	 */
+	public static final int FUSION_IO_MAX_KEY_SIZE = 128;
+
+
 	/** The key length, in bytes. */
 	private int length = 0;
 
 	/** The key bytes themselves. */
 	private ByteBuffer bytes = null;
+
+	/**
+	 * Empty private constructor.
+	 *
+	 * <p>
+	 * Keys must be built using one of the <tt>createFrom()</tt> methods.
+	 * </p>
+	 */
+	private Key() {
+	}
 
 	/**
 	 * Return the key's size, in bytes.
@@ -79,7 +99,7 @@ public class Key {
 	 *	and 128 bytes.
 	 */
 	public Key allocate(int size) {
-		if (size <= 0 || size > FusionIOAPI.FUSION_IO_MAX_KEY_SIZE) {
+		if (size <= 0 || size > FUSION_IO_MAX_KEY_SIZE) {
 			throw new IllegalArgumentException(
 				"Invalid key size " + size + "!");
 		}
@@ -136,7 +156,7 @@ public class Key {
 	 *	128 bytes.
 	 */
 	public static Key createFrom(byte[] data) {
-		if (data.length <= 0 || data.length > FusionIOAPI.FUSION_IO_MAX_KEY_SIZE) {
+		if (data.length <= 0 || data.length > FUSION_IO_MAX_KEY_SIZE) {
 			throw new IllegalArgumentException(
 				"Invalid key size " + data.length + "!");
 		}

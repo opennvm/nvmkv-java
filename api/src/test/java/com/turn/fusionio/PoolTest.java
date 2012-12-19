@@ -40,20 +40,16 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 /**
- * Tests for the low-level FusionIO API wrapping.
- *
- * <p>
- * These tests are marked as broken by default because they need FusionIO
- * hardware installed in the machine that runs them.
- * </p>
+ * Tests for FusionIO key/value store pools.
  *
  * @author mpetazzoni
  */
 @Test
-public class FusionIOAPITest {
+public class PoolTest {
 
 	private static final String DEVICE_NAME = "/dev/fioa";
 	private static final int POOL_ID = 0;
+
 	private static final int BATCH_SIZE = 10;
 	private static final int BIG_VALUE_SIZE = 4096;
 
@@ -69,18 +65,11 @@ public class FusionIOAPITest {
 		0x00,
 	};
 
-	private FusionIOAPI api = null;
+	private Store store = null;
+	private Pool pool = null;
 
 	@BeforeClass
 	public void setUp() throws FusionIOException {
-		this.api = new FusionIOAPI(DEVICE_NAME, POOL_ID);
-		this.api.destroy();
-		assert !this.api.isOpened()
-			: "The key/value store should be closed after destroy!";
-
-		// Need to wait a bit for permission reset on device file.
-		try { Thread.sleep(250); } catch (InterruptedException ie) { }
-
 		for (int i=0; i<BATCH_SIZE; i++) {
 			TEST_KEYS[i] = Key.createFrom(i);
 			TEST_VALUES[i] = Value.get(TEST_DATA.length);
@@ -88,11 +77,22 @@ public class FusionIOAPITest {
 			TEST_VALUES[i].getByteBuffer().rewind();
 			TEST_READBACK[i] = Value.get(TEST_DATA.length);
 		}
+
+		this.store = new Store(DEVICE_NAME);
+		this.store.destroy();
+		assert !this.store.isOpened()
+			: "The key/value store should be closed after destroy!";
+
+		// Need to wait a bit for permission reset on device file.
+		try { Thread.sleep(250); } catch (InterruptedException ie) { }
+
+		this.store.open();
+		this.pool = this.store.getPool(POOL_ID);
 	}
 
 	@BeforeMethod
 	public void clean() throws FusionIOException {
-		this.api.remove(TEST_KEYS);
+		this.pool.remove(TEST_KEYS);
 		for (int i=0; i<BATCH_SIZE; i++) {
 			TEST_READBACK[i]
 				.free()
@@ -106,41 +106,32 @@ public class FusionIOAPITest {
 			TEST_VALUES[i].free();
 			TEST_READBACK[i].free();
 		}
-		this.api.close();
-	}
-
-	public void testOpenClose() throws FusionIOException {
-		this.api.open();
-		assert this.api.isOpened()
-			: "FusionIO API was not opened as expected";
-		this.api.close();
-		assert !this.api.isOpened()
-			: "FusionIO API should be closed now";
+		this.store.close();
 	}
 
 	public void testGet() throws FusionIOException {
-		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
-		assert this.api.exists(TEST_KEYS[0])
+		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
-		this.api.get(TEST_KEYS[0], TEST_READBACK[0]);
+		this.pool.get(TEST_KEYS[0], TEST_READBACK[0]);
 		Assert.assertEquals(
 			TEST_READBACK[0].getByteBuffer(),
 			TEST_VALUES[0].getByteBuffer());
 	}
 
 	public void testPut() throws FusionIOException {
-		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
-		assert this.api.exists(TEST_KEYS[0])
+		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 	}
 
 	public void testRemove() throws FusionIOException {
-		this.api.put(TEST_KEYS[0], TEST_VALUES[0]);
-		assert this.api.exists(TEST_KEYS[0])
+		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 
-		this.api.remove(TEST_KEYS[0]);
-		assert !this.api.exists(TEST_KEYS[0])
+		this.pool.remove(TEST_KEYS[0]);
+		assert !this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should have been removed";
 	}
 
@@ -152,20 +143,20 @@ public class FusionIOAPITest {
 			data.put((byte) 0x42);
 		}
 
-		this.api.put(TEST_KEYS[0], value);
-		assert this.api.exists(TEST_KEYS[0])
+		this.pool.put(TEST_KEYS[0], value);
+		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
-		this.api.get(TEST_KEYS[0], readback);
+		this.pool.get(TEST_KEYS[0], readback);
 
 		data.rewind();
 		Assert.assertEquals(readback.getByteBuffer(), data);
 	}
 
 	public void testBatchPut() throws FusionIOException {
-		this.api.put(TEST_KEYS, TEST_VALUES);
+		this.pool.put(TEST_KEYS, TEST_VALUES);
 
 		for (int i=0; i<BATCH_SIZE; i++) {
-			this.api.get(TEST_KEYS[i], TEST_READBACK[i]);
+			this.pool.get(TEST_KEYS[i], TEST_READBACK[i]);
 			Assert.assertEquals(
 				TEST_READBACK[i].getByteBuffer(),
 				TEST_VALUES[i].getByteBuffer(),
@@ -174,24 +165,24 @@ public class FusionIOAPITest {
 	}
 
 	public void testBatchRemove() throws FusionIOException {
-		this.api.put(TEST_KEYS, TEST_VALUES);
+		this.pool.put(TEST_KEYS, TEST_VALUES);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			assert this.api.exists(TEST_KEYS[i])
+			assert this.pool.exists(TEST_KEYS[i])
 				: "Key/value pair #" + i + " should have been inserted!";
 		}
 
-		this.api.remove(TEST_KEYS);
+		this.pool.remove(TEST_KEYS);
 		for (int i=0; i<BATCH_SIZE; i++) {
-			assert !this.api.exists(TEST_KEYS[i])
+			assert !this.pool.exists(TEST_KEYS[i])
 				: "Key/value pair #" + i + " should have been removed!";
 		}
 	}
 
 	public void testIteration() throws FusionIOException {
-		this.api.put(TEST_KEYS, TEST_VALUES);
+		this.pool.put(TEST_KEYS, TEST_VALUES);
 
 		int count = 0;
-		for (Map.Entry<Key, Value> pair : this.api) {
+		for (Map.Entry<Key, Value> pair : this.pool) {
 			assert count < TEST_VALUES.length
 				: "Iteration returned too many items!";
 			Assert.assertEquals(
@@ -201,5 +192,22 @@ public class FusionIOAPITest {
 			count++;
 		}
 		assert count == TEST_VALUES.length;
+	}
+
+	public void testPoolPartitioning() throws FusionIOException {
+		Pool a = this.store.createPool();
+		assert a != null;
+		assert a.id > 0;
+
+		Pool b = this.store.createPool();
+		assert b != null;
+		assert b.id > 0;
+		assert b.id != a.id;
+
+		a.put(TEST_KEYS, TEST_VALUES);
+
+		// For now creating an iterator on an empty pool fails by design, but
+		// that's all we need to check.
+		assert b.iterator() == null;
 	}
 }

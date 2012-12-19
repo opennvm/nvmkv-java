@@ -36,7 +36,7 @@
   <parent>
     <groupId>com.turn.fusionio</groupId>
     <artifactId>fiokv-java</artifactId>
-    <version>0.3.1-3</version>
+    <version>0.4.0-2</version>
   </parent>
 
   <name>FusionIO KV API Java binding API</name>
@@ -52,11 +52,19 @@
     <tests.disable>true</tests.disable>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>turn</id>
+      <name>Turn's Maven Repository</name>
+      <url>http://maven.turn.com/service/local/repositories/turn/content</url>
+    </repository>
+  </repositories>
+
   <dependencies>
     <dependency>
       <groupId>com.turn.fusionio</groupId>
       <artifactId>libfio_kv_helper</artifactId>
-      <version>${project.version}</version>
+      <version>0.4.0-2</version>
       <type>so</type>
     </dependency>
 

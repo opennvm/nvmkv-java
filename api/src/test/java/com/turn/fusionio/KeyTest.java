@@ -45,14 +45,6 @@ public class KeyTest {
 
 	private static final int KEY_SIZE = 42;
 
-	public void testEmptyConstructorSize() {
-		assert new Key().size() == 0;
-	}
-
-	public void testEmptyConstructorByteBufferIsNull() {
-		assert new Key().getByteBuffer() == null;
-	}
-
 	@Test(expectedExceptions=IllegalArgumentException.class)
 	public void testAllocateNegativeSizeThrowsException() {
 		Key.get(-KEY_SIZE);
@@ -65,7 +57,7 @@ public class KeyTest {
 
 	@Test(expectedExceptions=IllegalArgumentException.class)
 	public void testAllocateOverSizeThrowsException() {
-		Key.get(FusionIOAPI.FUSION_IO_MAX_KEY_SIZE+1);
+		Key.get(Key.FUSION_IO_MAX_KEY_SIZE+1);
 	}
 
 	public void testAllocatedKeySize() {
@@ -88,7 +80,7 @@ public class KeyTest {
 	}
 
 	public void testGetLongValueFromEmptyKeyBuffer() {
-		Key k = new Key().allocate(8);
+		Key k = Key.get(8);
 		assert k.size() == 8;
 		assert k.longValue() == 0;
 	}
@@ -111,7 +103,7 @@ public class KeyTest {
 
 	@Test(expectedExceptions=IllegalArgumentException.class)
 	public void testCreateFromLargeByteArray() {
-		Key.createFrom(new byte[FusionIOAPI.FUSION_IO_MAX_KEY_SIZE+1]);
+		Key.createFrom(new byte[Key.FUSION_IO_MAX_KEY_SIZE+1]);
 	}
 
 	public void testCreateFromByteArray() {

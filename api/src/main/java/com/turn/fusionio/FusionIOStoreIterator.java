@@ -42,7 +42,7 @@ import java.util.NoSuchElementException;
  */
 public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 
-	private final Store store;
+	private final Pool pool;
 	private final int iterator;
 
 	private final KeyValuePair allocated;
@@ -52,21 +52,21 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	/**
 	 * Instantiate a new iterator on the given key/value store.
 	 *
-	 * @param store The key/value store to iterate over.
+	 * @param pool The key/value store pool to iterate over.
 	 * @throws FusionIOException If the native store iterator could not be
 	 *	obtained.
 	 */
-	public FusionIOStoreIterator(Store store) throws FusionIOException {
-		this.store = store;
-		this.iterator = FusionIOAPI.HelperLibrary.fio_kv_iterator(this.store);
+	public FusionIOStoreIterator(Pool pool) throws FusionIOException {
+		this.pool = pool;
+		this.iterator = FusionIOAPI.fio_kv_iterator(this.pool);
 		if (this.iterator < 0) {
 			throw new FusionIOException("Could not create iterator on " +
-				this.store + "!");
+				this.pool + "!", FusionIOAPI.fio_kv_get_last_error());
 		}
 
 		this.allocated = new KeyValuePair(
-			Key.get(FusionIOAPI.FUSION_IO_MAX_KEY_SIZE),
-			Value.get(FusionIOAPI.FUSION_IO_MAX_VALUE_SIZE));
+			Key.get(Key.FUSION_IO_MAX_KEY_SIZE),
+			Value.get(Value.FUSION_IO_MAX_VALUE_SIZE));
 		this.next = null;
 		this.first = true;
 	}
@@ -104,14 +104,13 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	}
 
 	private KeyValuePair advance() {
-		if (!this.first &&
-			!FusionIOAPI.HelperLibrary.fio_kv_next(this.store, this.iterator)) {
+		if (!this.first && !FusionIOAPI.fio_kv_next(this.pool, this.iterator)) {
 			return null;
 		}
 
 		this.first = false;
 
-		if (!FusionIOAPI.HelperLibrary.fio_kv_get_current(this.store, this.iterator,
+		if (!FusionIOAPI.fio_kv_get_current(this.pool, this.iterator,
 				allocated.getKey(), allocated.getValue())) {
 			return null;
 		}

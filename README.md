@@ -91,13 +91,14 @@ import com.turn.fusionio.FusionIOAPI;
 /* FusionIO device, usually /dev/fctX */
 private static final String FUSION_IO_DEVICE = "/dev/fct0";
 
-/* ID of the key/value pairs pool to use on the device. */
+/* ID of the key/value pairs pool to use on the device. 0 is the default pool
+ * which doesn't require a pool creation. */
 private static final int FUSION_IO_POOL_ID = 0;
 
-FusionIOAPI api = new FusionIOAPI(
-    FUSION_IO_DEVICE,
-    FUSION_IO_POOL_ID);
-api.open();
+Store fio = FusionIOAPI.get(FUSION_IO_DEVICE);
+fio.open();
+
+Pool pool = fio.getPool(FUSION_IO_POOL_ID);
 ```
 
 To write a key/value pair:
@@ -125,9 +126,10 @@ key = Key.createFrom(42);
 Value value = Value.get(value_len);
 ByteBuffer data = value.getByteBuffer();
 
-// Put stuff into the data ByteBuffer.
+// Put stuff into the data ByteBuffer...
 
-api.put(key, value);
+// Write the key/value pair into the pool.
+pool.put(key, value);
 
 // Make sure you free the allocated value memory as this is not memory managed
 // by the JVM!
@@ -140,10 +142,10 @@ version of FusionIO's KV library):
 
 ```java
 Value readback = new Value(value_len);
-api.get(Key.createFrom(42L), readback);
+pool.get(Key.createFrom(42L), readback);
 ByteBuffer data = readback.getByteBuffer();
 
-// Do stuff with the data ByteBuffer
+// Do stuff with the data ByteBuffer...
 
 // Always free the value once you're done with it!
 value.free();

@@ -45,6 +45,15 @@ import java.nio.ByteOrder;
  */
 public class Value {
 
+	/**
+	 * Maximum value size supported by FusionIO.
+	 *
+	 * <p>
+	 * The maximum value size is 1MiB - 1KiB.
+	 * </p>
+	 */
+	public static final int FUSION_IO_MAX_VALUE_SIZE = 1024 * 1023;
+
 	/** A {@link ByteBuffer} holding the value's contents. */
 	private ByteBuffer data = null;
 
@@ -54,6 +63,17 @@ public class Value {
 	 * retrieved.
 	 */
 	private KeyValueInfo info = null;
+
+	/**
+	 * Empty private constructor.
+	 *
+	 * <p>
+	 * Values should be created using the {@link #get(int size)} method to be
+	 * correctly allocated.
+	 * </p>
+	 */
+	private Value() {
+	}
 
 	/**
 	 * Return this value's data as a {@link ByteBuffer}.
@@ -89,9 +109,33 @@ public class Value {
 			throw new IllegalArgumentException("Invalid value size!");
 		}
 
-		this.data = FusionIOAPI.HelperLibrary.fio_kv_alloc(size)
+		this.data = FusionIOAPI.fio_kv_alloc(size)
 			.order(ByteOrder.nativeOrder());
 		this.info = new KeyValueInfo();
+		this.info.value_len = size;
+		return this;
+	}
+
+	/**
+	 * Forces the value length to the given size.
+	 *
+	 * <p>
+	 * This sets the limit on the underlying value byte buffer and sets the
+	 * value_len field of the info structure to the given size. This will
+	 * restrict directKV operations on this buffer to the set size.
+	 * </p>
+	 */
+	public Value forceSize(int size) {
+		if (this.info == null) {
+			throw new IllegalStateException("Value is not allocated!");
+		}
+
+		if (size > this.data.capacity()) {
+			throw new IllegalArgumentException(
+				"Cannot force to a greater size than allocated!");
+		}
+
+		this.data.limit(size);
 		this.info.value_len = size;
 		return this;
 	}
@@ -117,7 +161,7 @@ public class Value {
 	 * @return Returns the {@link Value} object, for chaining.
 	 */
 	public Value free() {
-		FusionIOAPI.HelperLibrary.fio_kv_free_value(this);
+		FusionIOAPI.fio_kv_free_value(this);
 		this.info = null;
 		return this;
 	}
