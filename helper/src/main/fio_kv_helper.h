@@ -73,13 +73,13 @@ typedef struct {
  * file path, in which case the pool_id parameter is ignored.
  *
  * Args:
- *	 path (const char *): Path to the Fusion-IO device file.
+ *	 store (fio_kv_store_t *): An allocated fio_kv_store_t structure with the
+ *		path member filled-in.
  * Returns:
- *	 Returns a fio_kv_store_t structure containing the file descriptor
- *	 associated with the open device and the KV store ID used by the KV SDK
- *	 API.
+ *	 Returns true if the operation was successful (and the fd and kv fields of
+ *	 the fio_kv_store_t structure are filled in), false otherwise.
  */
-fio_kv_store_t *fio_kv_open(const char *path);
+bool fio_kv_open(fio_kv_store_t *store);
 
 /**
  * Close a key/value store.
