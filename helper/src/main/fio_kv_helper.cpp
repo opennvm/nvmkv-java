@@ -647,7 +647,6 @@ fio_kv_store_t *__jobject_to_fio_kv_store(JNIEnv *env, jobject _store)
 	assert(_store != NULL);
 
 	fio_kv_store_t *store = (fio_kv_store_t *)malloc(sizeof(fio_kv_store_t));
-
 	store->fd = env->GetIntField(_store, _store_field_fd);
 	store->kv = env->GetLongField(_store, _store_field_kv);
 	return store;
@@ -701,21 +700,6 @@ fio_kv_key_t *__jobject_to_fio_kv_key(JNIEnv *env, jobject _key)
 	key->bytes = (nvm_kv_key_t *)env->GetDirectBufferAddress(
 			env->GetObjectField(_key, _key_field_bytes));
 	return key;
-}
-
-/**
- * Convert a fio_kv_key_t structure back into a Key object.
- */
-jobject __fio_kv_key_to_jobject(JNIEnv *env, fio_kv_key_t *key)
-{
-	assert(env != NULL);
-	assert(key != NULL);
-
-	jobject _key = env->NewObject(_key_cls, _key_cstr);
-	env->SetIntField(_key, _key_field_length, key->length);
-	env->SetObjectField(_key, _key_field_bytes,
-			env->NewDirectByteBuffer(key->bytes, key->length));
-	return _key;
 }
 
 /**
@@ -785,22 +769,6 @@ fio_kv_value_t *__jobject_to_fio_kv_value(JNIEnv *env, jobject _value)
 	value->info = __jobject_to_nvm_kv_key_info(env,
 			env->GetObjectField(_value, _value_field_info));
 	return value;
-}
-
-/**
- * Converts a fio_kv_value_t structure back into a Value object.
- */
-jobject __fio_kv_value_to_jobject(JNIEnv *env, fio_kv_value_t *value)
-{
-	assert(env != NULL);
-	assert(value != NULL);
-
-	jobject _value = env->NewObject(_value_cls, _value_cstr);
-	env->SetObjectField(_value, _value_field_data,
-			env->NewDirectByteBuffer(value->data, value->info->value_len));
-	env->SetObjectField(_value, _value_field_info,
-			__nvm_kv_key_info_to_jobject(env, value->info));
-	return _value;
 }
 
 /**
