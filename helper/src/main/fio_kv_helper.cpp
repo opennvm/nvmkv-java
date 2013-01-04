@@ -648,8 +648,6 @@ fio_kv_store_t *__jobject_to_fio_kv_store(JNIEnv *env, jobject _store)
 
 	fio_kv_store_t *store = (fio_kv_store_t *)malloc(sizeof(fio_kv_store_t));
 
-	store->path = env->GetStringUTFChars(
-			(jstring)env->GetObjectField(_store, _store_field_path), 0);
 	store->fd = env->GetIntField(_store, _store_field_fd);
 	store->kv = env->GetLongField(_store, _store_field_kv);
 	return store;
@@ -812,6 +810,8 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1open(
 		JNIEnv *env, jclass cls, jobject _store)
 {
 	fio_kv_store_t *store = __jobject_to_fio_kv_store(env, _store);
+	store->path = env->GetStringUTFChars(
+			(jstring)env->GetObjectField(_store, _store_field_path), 0);
 	bool ret = fio_kv_open(store);
 	env->ReleaseStringUTFChars(
 			(jstring)env->GetObjectField(_store, _store_field_path),
