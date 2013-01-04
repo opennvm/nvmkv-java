@@ -837,7 +837,7 @@ JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1alloc(
 		JNIEnv *env, jclass cls, jint _length)
 {
 	void *p = fio_kv_alloc((uint32_t)_length);
-	return p ? env->NewDirectByteBuffer(p, _length) : NULL;
+	return p ? env->NewGlobalRef(env->NewDirectByteBuffer(p, _length)) : NULL;
 }
 
 /**
@@ -848,6 +848,7 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1free_1value
 {
 	fio_kv_value_t *value = __jobject_to_fio_kv_value(env, _value);
 	fio_kv_free_value(value);
+	env->DeleteGlobalRef(_value);
 	env->SetObjectField(_value, _value_field_data, NULL);
 	free(value->info);
 	free(value);
