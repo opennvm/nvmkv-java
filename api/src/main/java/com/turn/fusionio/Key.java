@@ -125,9 +125,27 @@ public class Key {
 	}
 
 	/**
+	 * Set this {@link Key} as a long.
+	 *
+	 * @param value The value, as a long, to store in the key.
+	 * @return Returns the {@link Key} object, for chaining.
+	 */
+	public Key set(long value) {
+		if (this.length != 8) {
+			throw new IllegalStateException("Key is not a long (" +
+				this.bytes + ") !");
+		}
+
+		this.bytes.putLong(0, value);
+		this.bytes.rewind();
+		return this;
+	}
+
+	/**
 	 * Initiliazes and allocates a new Key of the given size.
 	 *
 	 * @param size The key size, in bytes.
+	 * @return Returns the allocated {@link Key} object.
 	 */
 	public static Key get(int size) {
 		return new Key().allocate(size);
@@ -141,9 +159,7 @@ public class Key {
 	 */
 	public static Key createFrom(long uid) {
 		Key k = Key.get(8);
-		k.bytes.putLong(uid);
-		k.bytes.rewind();
-		return k;
+		return k.set(uid);
 	}
 
 	/**
