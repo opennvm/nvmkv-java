@@ -162,6 +162,7 @@ public class Value {
 	 */
 	public Value free() {
 		FusionIOAPI.fio_kv_free_value(this);
+		this.data = null;
 		this.info = null;
 		return this;
 	}
