@@ -74,6 +74,7 @@ public class FusionIOStoreIterator implements Iterator<Map.Entry<Key, Value>> {
 	@Override
 	protected final void finalize() throws Throwable {
 		this.allocated.getValue().free();
+		FusionIOAPI.fio_kv_end_iteration(this.pool, this.iterator);
 		super.finalize();
 	}
 

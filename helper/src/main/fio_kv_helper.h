@@ -31,7 +31,7 @@
 #ifndef __FIO_KV_HELPER_H__
 #define __FIO_KV_HELPER_H__
 
-#include <vsl_dp_experimental/kv.h>
+#include <nvm/kv.h>
 
 #define __FIO_KV_HELPER_USE_JNI__
 
@@ -51,6 +51,7 @@ typedef struct {
 typedef struct {
 	fio_kv_store_t *store;
 	int id;
+	nvm_kv_pool_tag_t *tag;
 } fio_kv_pool_t;
 
 typedef struct {
@@ -109,11 +110,13 @@ bool fio_kv_destroy(fio_kv_store_t *store);
  *
  * Args:
  *	store (fio_kv_store_t *): The key/value store.
+ *	tag (nvm_kv_pool_tag_t *): The pool name tag.
  * Returns:
  *	Returns a newly allocated fio_kv_pool_t structure describing the created
  *	pool.
  */
-fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store);
+fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store,
+		nvm_kv_pool_tag_t *tag);
 
 /**
  * Allocate sector-aligned memory to hold the given number of bytes.
@@ -137,6 +140,17 @@ void *fio_kv_alloc(const uint32_t length);
  *	 value (fio_kv_value_t *): The value structure to free.
  */
 void fio_kv_free_value(fio_kv_value_t *value);
+
+/**
+ * Retrieve a value's length, rounded up to the next sector, without any I/O.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The key/value pool.
+ *	key (fio_kv_key_t *): The key.
+ * Returns:
+ *	The value length, rounded up to the next sector.
+ */
+int fio_kv_get_value_len(const fio_kv_pool_t *pool, const fio_kv_key_t *key);
 
 /**
  * Retrieve the value associated with a given key in a key/value pool.
@@ -200,25 +214,6 @@ int fio_kv_exists(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
 bool fio_kv_delete(const fio_kv_pool_t *pool, const fio_kv_key_t *key);
 
 /**
- * Retrieve a set of values corresponding to the given set of keys in one
- * batch operation.
- *
- * Note that you must provide sector-aligned memory of the appropriate size for
- * each value.
- *
- * Args:
- *	pool (fio_kv_pool_t *): The key/value pool.
- *	keys (fio_kv_key_t **): An array of pointer to the keys to retrieve.
- *	values (fio_kv_value_t **): An array of pointers to allocated value
- *	  structures to hold the results.
- *	  count (size_t): The number of key/value pairs.
- * Returns:
- *	Returns true if the batch retrieval was successful, false otherwise.
- */
-bool fio_kv_batch_get(const fio_kv_pool_t *pool, const fio_kv_key_t **keys,
-		const fio_kv_value_t **values, const size_t count);
-
-/**
  * Insert (or replace) a set of key/value pairs in one batch operation.
  *
  * Args:
@@ -232,19 +227,6 @@ bool fio_kv_batch_get(const fio_kv_pool_t *pool, const fio_kv_key_t **keys,
  */
 bool fio_kv_batch_put(const fio_kv_pool_t *pool, const fio_kv_key_t **keys,
 		const fio_kv_value_t **values, const size_t count);
-
-/**
- * Remove a set of key/value pairs in one batch operation.
- *
- * Args:
- *	pool (fio_kv_pool_t *): The key/value pool.
- *	keys (fio_kv_key_t **): An array of pointers to the keys to remove.
- *	count (size_t): The number of key/value pairs.
- * Returns:
- *	Returns true if the batch insertion was successful, false otherwise.
- */
-bool fio_kv_batch_delete(const fio_kv_pool_t *pool,
-		const fio_kv_key_t **keys, const size_t count);
 
 /**
  * Create an iterator on a key/value pool.
@@ -283,6 +265,17 @@ bool fio_kv_next(const fio_kv_pool_t *pool, const int iterator);
  */
 bool fio_kv_get_current(const fio_kv_pool_t *pool, const int iterator,
 		fio_kv_key_t *key, const fio_kv_value_t *value);
+
+/**
+ * End an iteration.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The key/value pool.
+ *	iterator (int): The ID of the iterator.
+ * Returns:
+ *	Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_end_iteration(const fio_kv_pool_t *pool, const int iterator);
 
 /**
  * Retrieve the last errno value.

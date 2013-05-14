@@ -154,19 +154,20 @@ public class Store implements Closeable {
 	 * @return Returns the corresponding key/value store pool.
 	 */
 	public Pool getPool(int poolId) {
-		return new Pool(this, poolId);
+		return new Pool(this, poolId, null);
 	}
 
 	/**
 	 * Create a new pool in this key/value store.
 	 *
+	 * @param tag The pool tag.
 	 * @throws FusionIOException If the pool could not be created because of an
 	 *	internal error.
 	 */
-	public synchronized Pool createPool() throws FusionIOException {
+	public synchronized Pool createPool(String tag) throws FusionIOException {
 		this.open();
 
-		Pool pool = FusionIOAPI.fio_kv_create_pool(this);
+		Pool pool = FusionIOAPI.fio_kv_create_pool(this, tag);
 		if (pool == null) {
 			throw new FusionIOException("Error while creating a new pool!",
 				FusionIOAPI.fio_kv_get_last_error());

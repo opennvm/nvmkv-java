@@ -84,23 +84,24 @@ public class FusionIOAPI {
 	static native void fio_kv_close(Store store);
 	static native boolean fio_kv_destroy(Store store);
 
-	static native Pool fio_kv_create_pool(Store store);
+	static native Pool fio_kv_create_pool(Store store, String tag);
 
 	static native ByteBuffer fio_kv_alloc(int length);
 	static native void fio_kv_free_value(Value value);
+
+	static native int fio_kv_get_value_len(Pool pool, Key key);
 
 	static native int fio_kv_get(Pool pool, Key key, Value value);
 	static native int fio_kv_put(Pool pool, Key key, Value value);
 	static native int fio_kv_exists(Pool pool, Key key, KeyValueInfo info);
 	static native boolean fio_kv_delete(Pool pool, Key key);
 
-	static native boolean fio_kv_batch_get(Pool pool, Key[] keys, Value[] values);
 	static native boolean fio_kv_batch_put(Pool pool, Key[] keys, Value[] values);
-	static native boolean fio_kv_batch_delete(Pool pool, Key[] keys);
 
 	static native int fio_kv_iterator(Pool pool);
 	static native boolean fio_kv_next(Pool pool, int iterator);
 	static native boolean fio_kv_get_current(Pool pool, int iterator, Key key, Value value);
+	static native boolean fio_kv_end_iteration(Pool pool, int iterator);
 
 	static native int fio_kv_get_last_error();
 }

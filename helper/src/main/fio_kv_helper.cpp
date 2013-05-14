@@ -86,8 +86,8 @@ bool fio_kv_open(fio_kv_store_t *store)
 		return 0;
 	}
 
-	store->kv = nvm_kv_create(store->fd, FIO_KV_API_VERSION,
-			NVM_KV_MAX_POOLS, KV_DISABLE_EXPIRY, false);
+	store->kv = nvm_kv_open(store->fd, FIO_KV_API_VERSION,
+			NVM_KV_MAX_POOLS, KV_ARBITRARY_EXPIRY);
 	if (store->kv <= 0) {
 		return 0;
 	}
@@ -140,14 +140,16 @@ bool fio_kv_destroy(fio_kv_store_t *store)
  *
  * Args:
  *	store (fio_kv_store_t *): The key/value store.
+ *	tag (nvm_kv_pool_tag_t *): The pool name tag.
  * Returns:
  *	Returns a newly allocated fio_kv_pool_t structure describing the created
  *	pool.
  */
-fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store)
+fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store,
+		nvm_kv_pool_tag_t *tag)
 {
 	assert(store != NULL);
-	int ret = nvm_kv_pool_create(store->kv);
+	int ret = nvm_kv_pool_create(store->kv, tag);
 	if (ret <= 0) {
 		return NULL;
 	}
@@ -155,6 +157,7 @@ fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store)
 	fio_kv_pool_t *pool = (fio_kv_pool_t *)malloc(sizeof(fio_kv_pool_t));
 	pool->store = store;
 	pool->id = ret;
+	pool->tag = tag;
 	return pool;
 }
 
@@ -197,6 +200,28 @@ void fio_kv_free_value(fio_kv_value_t *value)
 }
 
 /**
+ * Retrieve a value's length, rounded up to the next sector, without any I/O.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The key/value pool.
+ *	key (fio_kv_key_t *): The key.
+ * Returns:
+ *	The value length, rounded up to the next sector.
+ */
+int fio_kv_get_value_len(const fio_kv_pool_t *pool, const fio_kv_key_t *key)
+{
+	assert(pool != NULL);
+	assert(pool->store != NULL);
+	assert(pool->id >= 0 && pool->id < NVM_KV_MAX_POOLS);
+	assert(key != null);
+	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
+	assert(key->bytes != NULL);
+
+	return nvm_kv_get_val_len(pool->store->kv, pool->id,
+			key->bytes, key->length);
+}
+
+/**
  * Retrieve the value associated with a given key in a key/value pool.
  *
  * Note that you must provide sector-aligned memory that will can contain the
@@ -226,7 +251,7 @@ int fio_kv_get(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
 
 	return nvm_kv_get(pool->store->kv, pool->id,
 			key->bytes, key->length,
-			value->data, value->info->value_len,
+			value->data, value->info->value_len, false,
 			value->info);
 }
 
@@ -364,41 +389,6 @@ nvm_kv_iovec_t *_fio_kv_prepare_batch(const fio_kv_key_t **keys,
 }
 
 /**
- * Retrieve a set of values corresponding to the given set of keys in one
- * batch operation.
- *
- * Note that you must provide sector-aligned memory of the appropriate size for
- * each value.
- *
- * Args:
- *	pool (fio_kv_pool_t *): The key/value pool.
- *	keys (fio_kv_key_t **): An array of pointer to the keys to retrieve.
- *	values (fio_kv_value_t **): An array of pointers to allocated value
- *	  structures to hold the results.
- *	  count (size_t): The number of key/value pairs.
- * Returns:
- *	Returns true if the batch retrieval was successful, false otherwise.
- */
-bool fio_kv_batch_get(const fio_kv_pool_t *pool, const fio_kv_key_t **keys,
-		const fio_kv_value_t **values, const size_t count)
-{
-	nvm_kv_iovec_t *v;
-	int ret;
-
-	assert(pool != NULL);
-	assert(pool->store != NULL);
-	assert(pool->id >= 0 && pool->id < NVM_KV_MAX_POOLS);
-	assert(keys != NULL);
-	assert(values != NULL);
-
-	v = _fio_kv_prepare_batch(keys, values, count);
-	ret = nvm_kv_batch_get(pool->store->kv, pool->id, v, count);
-	free(v);
-
-	return ret == 0;
-}
-
-/**
  * Insert (or replace) a set of key/value pairs in one batch operation.
  *
  * Args:
@@ -424,34 +414,6 @@ bool fio_kv_batch_put(const fio_kv_pool_t *pool, const fio_kv_key_t **keys,
 
 	v = _fio_kv_prepare_batch(keys, values, count);
 	ret = nvm_kv_batch_put(pool->store->kv, pool->id, v, count);
-	free(v);
-
-	return ret == 0;
-}
-
-/**
- * Remove a set of key/value pairs in one batch operation.
- *
- * Args:
- *	pool (fio_kv_pool_t *): The key/value pool.
- *	keys (fio_kv_key_t **): An array of pointers to the keys to remove.
- *	count (size_t): The number of key/value pairs.
- * Returns:
- *	Returns true if the batch insertion was successful, false otherwise.
- */
-bool fio_kv_batch_delete(const fio_kv_pool_t *pool,
-		const fio_kv_key_t **keys, const size_t count)
-{
-	nvm_kv_iovec_t *v;
-	int ret;
-
-	assert(pool != NULL);
-	assert(pool->store != NULL);
-	assert(pool->id >= 0 && pool->id < NVM_KV_MAX_POOLS);
-	assert(keys != NULL);
-
-	v = _fio_kv_prepare_batch(keys, NULL, count);
-	ret = nvm_kv_batch_delete(pool->store->kv, pool->id, v, count);
 	free(v);
 
 	return ret == 0;
@@ -528,6 +490,25 @@ bool fio_kv_get_current(const fio_kv_pool_t *pool, const int iterator,
 }
 
 /**
+ * End an iteration.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The key/value pool.
+ *	iterator (int): The ID of the iterator.
+ * Returns:
+ *	Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_end_iteration(const fio_kv_pool_t *pool, const int iterator)
+{
+	assert(pool != NULL);
+	assert(pool->store != NULL);
+	assert(pool->id >= 0 && pool->id < NVM_KV_MAX_POOLS);
+	assert(iterator >= 0);
+
+	return nvm_kv_iteration_end(pool->store->kv, iterator) == 0;
+}
+
+/**
  * Retrieve the last errno value.
  *
  * This method is obviously absolutely not thread-safe and cannot guarantee
@@ -561,7 +542,8 @@ static jfieldID _store_field_path,
 static jclass _pool_cls;
 static jmethodID _pool_cstr;
 static jfieldID _pool_field_store,
-                _pool_field_id;
+                _pool_field_id,
+                _pool_field_tag;
 
 static jclass _key_cls;
 static jmethodID _key_cstr;
@@ -601,9 +583,10 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1init_1jni_1ca
 	assert(_cls != NULL);
 	_pool_cls = (jclass) env->NewGlobalRef(_cls);
 	env->DeleteLocalRef(_cls);
-	_pool_cstr = env->GetMethodID(_pool_cls, "<init>", "(Lcom/turn/fusionio/Store;I)V");
+	_pool_cstr = env->GetMethodID(_pool_cls, "<init>", "(Lcom/turn/fusionio/Store;ILjava/lang/String;)V");
 	_pool_field_store = env->GetFieldID(_pool_cls, "store", "Lcom/turn/fusionio/Store;");
 	_pool_field_id    = env->GetFieldID(_pool_cls, "id",    "I");
+	_pool_field_tag   = env->GetFieldID(_pool_cls, "tag",   "Ljava/lang/String;");
 
 	_cls = env->FindClass("com/turn/fusionio/Key");
 	assert(_cls != NULL);
@@ -818,16 +801,19 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1destroy(
  * Pool fio_kv_create_pool(Store store);
  */
 JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1create_1pool
-	(JNIEnv *env, jclass cls, jobject _store)
+	(JNIEnv *env, jclass cls, jobject _store, jstring _tag)
 {
 	fio_kv_store_t *store = __jobject_to_fio_kv_store(env, _store);
-	fio_kv_pool_t *pool = fio_kv_create_pool(store);
+
+	const char *tag = env->GetStringUTFChars(_tag, 0);
+	fio_kv_pool_t *pool = fio_kv_create_pool(store, (nvm_kv_pool_tag_t *)tag);
+	env->ReleaseStringUTFChars(_tag, tag);
 	if (!pool) {
 		free(store);
 		return NULL;
 	}
 
-	return env->NewObject(_pool_cls, _pool_cstr, _store, pool->id);
+	return env->NewObject(_pool_cls, _pool_cstr, _store, pool->id, _tag);
 }
 
 /**
@@ -852,6 +838,31 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1free_1value
 	env->SetObjectField(_value, _value_field_data, NULL);
 	free(value->info);
 	free(value);
+}
+
+/*
+ * int fio_kv_get_value_len(Pool pool, Key key);
+ */
+JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1value_1len
+  (JNIEnv *env, jclass cls, jobject _pool, jobject _key)
+{
+	fio_kv_pool_t *pool;
+	fio_kv_key_t *key;
+	int ret;
+
+	assert(env != NULL);
+	assert(_pool != NULL);
+	assert(_key != NULL);
+
+	pool = __jobject_to_fio_kv_pool(env, _pool);
+	key = __jobject_to_fio_kv_key(env, _key);
+
+	ret = fio_kv_get_value_len(pool, key);
+
+	free(pool->store);
+	free(pool);
+	free(key);
+	return (jint)ret;
 }
 
 /**
@@ -968,17 +979,10 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1delete
 }
 
 /**
- * Call a fio_kv_batch_ operation that requires both arrays of keys and values
- * to be passed as arguments.
- *
- * This is a simple wrapper around a fio_kv_batch function that manages the
- * conversion of the JNI objects into C structures, calls the fio_kv_batch_
- * operation, frees the structures and returns the result of the operation.
+ * boolean fio_kv_batch_put(Pool pool, Key[] keys, Value[] values);
  */
-bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _pool, jobjectArray _keys,
-		jobjectArray _values,
-		bool (*op)(const fio_kv_pool_t *, const fio_kv_key_t **,
-			const fio_kv_value_t **, const size_t))
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1batch_1put
+  (JNIEnv *env, jclass cls, jobject _pool, jobjectArray _keys, jobjectArray _values)
 {
 	int count;
 	bool ret;
@@ -987,7 +991,6 @@ bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _pool, jobjectArray _keys,
 	assert(_pool != NULL);
 	assert(_keys != NULL);
 	assert(_values != NULL);
-	assert(op != NULL);
 
 	count = env->GetArrayLength(_keys);
 
@@ -1003,7 +1006,9 @@ bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _pool, jobjectArray _keys,
 	}
 
 	// Call the batch operation on the sets of keys and values.
-	ret = op(pool, (const fio_kv_key_t **)keys, (const fio_kv_value_t **)values,
+	ret = fio_kv_batch_put(pool,
+			(const fio_kv_key_t **)keys,
+			(const fio_kv_value_t **)values,
 			count);
 
 	for (int i=0; i<count; i++) {
@@ -1021,79 +1026,7 @@ bool __fio_kv_batch_call_kv(JNIEnv *env, jobject _pool, jobjectArray _keys,
 	free(pool);
 	free(keys);
 	free(values);
-	return ret;
-}
-
-/**
- * Call a fio_kv_batch_ operation that requires an array of keys to be passed
- * as argument.
- *
- * This is a simple wrapper around a fio_kv_batch function that manages the
- * conversion of the JNI objects into C structures, calls the fio_kv_batch_
- * operation, frees the structures and returns the result of the operation.
- */
-bool __fio_kv_batch_call_k(JNIEnv *env, jobject _pool, jobjectArray _keys,
-		bool (*op)(const fio_kv_pool_t *, const fio_kv_key_t **, const size_t))
-{
-	int count;
-	bool ret;
-
-	assert(env != NULL);
-	assert(_pool != NULL);
-	assert(_keys != NULL);
-	assert(op != NULL);
-
-	count = env->GetArrayLength(_keys);
-
-	fio_kv_pool_t *pool = __jobject_to_fio_kv_pool(env, _pool);
-	fio_kv_key_t **keys = (fio_kv_key_t **)calloc(count, sizeof(fio_kv_key_t *));
-
-	for (int i=0; i<count; i++) {
-		keys[i] = __jobject_to_fio_kv_key(env,
-				env->GetObjectArrayElement(_keys, i));
-	}
-
-	// Call the batch operation on the set of keys.
-	ret = op(pool, (const fio_kv_key_t **)keys, count);
-
-	for (int i=0; i<count; i++) {
-		free(keys[i]);
-	}
-
-	free(pool->store);
-	free(pool);
-	free(keys);
-	return ret;
-}
-
-/**
- * boolean fio_kv_batch_get(Pool pool, Key[] keys, Value[] values);
- */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1batch_1get
-  (JNIEnv *env, jclass cls, jobject _pool, jobjectArray _keys, jobjectArray _values)
-{
-	return (jboolean)__fio_kv_batch_call_kv(env, _pool,
-			_keys, _values, fio_kv_batch_get);
-}
-
-/**
- * boolean fio_kv_batch_put(Pool pool, Key[] keys, Value[] values);
- */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1batch_1put
-  (JNIEnv *env, jclass cls, jobject _pool, jobjectArray _keys, jobjectArray _values)
-{
-	return (jboolean)__fio_kv_batch_call_kv(env, _pool,
-			_keys, _values, fio_kv_batch_put);
-}
-
-/**
- * boolean fio_kv_batch_delete(Pool pool, Key[] keys);
- */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1batch_1delete
-  (JNIEnv *env, jclass cls, jobject _pool, jobjectArray _keys)
-{
-	return (jboolean)__fio_kv_batch_call_k(env, _pool,
-			_keys, fio_kv_batch_delete);
+	return (jboolean)ret;
 }
 
 /**
@@ -1143,6 +1076,19 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1curr
 	free(key);
 	free(value->info);
 	free(value);
+	return (jboolean)ret;
+}
+
+/**
+ * boolean fio_kv_end_iteration(Pool pool, int iterator);
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1end_1iteration
+  (JNIEnv *env, jclass cls, jobject _pool, jint _iterator)
+{
+	fio_kv_pool_t *pool = __jobject_to_fio_kv_pool(env, _pool);
+	bool ret = fio_kv_end_iteration(pool, (int)_iterator);
+	free(pool->store);
+	free(pool);
 	return (jboolean)ret;
 }
 

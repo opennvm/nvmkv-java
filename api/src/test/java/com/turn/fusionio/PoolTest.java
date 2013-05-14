@@ -92,8 +92,8 @@ public class PoolTest {
 
 	@BeforeMethod
 	public void clean() throws FusionIOException {
-		this.pool.remove(TEST_KEYS);
 		for (int i=0; i<BATCH_SIZE; i++) {
+			this.pool.remove(TEST_KEYS[i]);
 			TEST_READBACK[i]
 				.free()
 				.allocate(TEST_DATA.length);
@@ -113,10 +113,11 @@ public class PoolTest {
 		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
 		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
-		this.pool.get(TEST_KEYS[0], TEST_READBACK[0]);
+		Value readback = this.pool.get(TEST_KEYS[0]);
 		Assert.assertEquals(
-			TEST_READBACK[0].getByteBuffer(),
+			readback.getByteBuffer(),
 			TEST_VALUES[0].getByteBuffer());
+		readback.free();
 	}
 
 	public void testPut() throws FusionIOException {
@@ -137,44 +138,30 @@ public class PoolTest {
 
 	public void testBigValue() throws FusionIOException {
 		Value value = Value.get(BIG_VALUE_SIZE);
-		Value readback = Value.get(BIG_VALUE_SIZE);
 		ByteBuffer data = value.getByteBuffer();
 		while (data.remaining() > 0) {
 			data.put((byte) 0x42);
 		}
+		data.rewind();
 
 		this.pool.put(TEST_KEYS[0], value);
 		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
-		this.pool.get(TEST_KEYS[0], readback);
-
-		data.rewind();
+		Value readback = this.pool.get(TEST_KEYS[0]);
 		Assert.assertEquals(readback.getByteBuffer(), data);
+		readback.free();
 	}
 
 	public void testBatchPut() throws FusionIOException {
 		this.pool.put(TEST_KEYS, TEST_VALUES);
 
 		for (int i=0; i<BATCH_SIZE; i++) {
-			this.pool.get(TEST_KEYS[i], TEST_READBACK[i]);
+			Value readback = this.pool.get(TEST_KEYS[i]);
 			Assert.assertEquals(
-				TEST_READBACK[i].getByteBuffer(),
+				readback.getByteBuffer(),
 				TEST_VALUES[i].getByteBuffer(),
 				"Value #" + i + "'s data does not match!");
-		}
-	}
-
-	public void testBatchRemove() throws FusionIOException {
-		this.pool.put(TEST_KEYS, TEST_VALUES);
-		for (int i=0; i<BATCH_SIZE; i++) {
-			assert this.pool.exists(TEST_KEYS[i])
-				: "Key/value pair #" + i + " should have been inserted!";
-		}
-
-		this.pool.remove(TEST_KEYS);
-		for (int i=0; i<BATCH_SIZE; i++) {
-			assert !this.pool.exists(TEST_KEYS[i])
-				: "Key/value pair #" + i + " should have been removed!";
+			readback.free();
 		}
 	}
 
@@ -195,14 +182,16 @@ public class PoolTest {
 	}
 
 	public void testPoolPartitioning() throws FusionIOException {
-		Pool a = this.store.createPool();
+		Pool a = this.store.createPool("foo");
 		assert a != null;
 		assert a.id > 0;
+		assert "foo".equals(a.tag);
 
-		Pool b = this.store.createPool();
+		Pool b = this.store.createPool("bar");
 		assert b != null;
 		assert b.id > 0;
 		assert b.id != a.id;
+		assert "bar".equals(b.tag);
 
 		a.put(TEST_KEYS, TEST_VALUES);
 

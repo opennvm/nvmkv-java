@@ -60,9 +60,13 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	/** The pool ID. */
 	public final int id;
 
-	Pool(Store store, int id) {
+	/** The pool tag. */
+	public final String tag;
+
+	Pool(Store store, int id, String tag) {
 		this.store = store;
 		this.id = id;
+		this.tag = tag;
 	}
 
 	/**
@@ -70,55 +74,29 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 *
 	 * <p>
 	 * It is the responsibility of the caller to manage the memory used by the
-	 * {@link Value} object, in particular calling {@link Value.free()} to free
-	 * the sector-aligned memory allocated on the native side by {@link
-	 * Value.allocate()}.
+	 * {@link Value} object that is returned, in particular calling {@link
+	 * Value.free()} to free the sector-aligned memory allocated on the native
+	 * side by {@link Value.allocate()}.
 	 * </p>
 	 *
 	 * @param key The key of the pair to retrieve.
-	 * @param value The value to read into. It must be obtained with {@link
-	 *	Value.allocate()} so that the memory holding the pair data is
-	 *	sector-aligned.
-	 * @throws FusionIOException If an error occurred while retrieving the data.
+	 * @return Returns an allocated {@link Value} containing the requested data.
+	 * @throws FusionIOException If an error occurred while reading the
+	 *	key/value pair from the store.
 	 */
-	public void get(Key key, Value value) throws FusionIOException {
+	public Value get(Key key) throws FusionIOException {
 		if (!this.store.isOpened()) {
 			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
+		Value value = Value.get(
+			FusionIOAPI.fio_kv_get_value_len(this, key));
 		if (FusionIOAPI.fio_kv_get(this, key, value) < 0) {
 			throw new FusionIOException("Error reading key/value pair!");
 		}
-	}
 
-	/**
-	 * Retrieve a set of values from the key/value store.
-	 *
-	 * <p>
-	 * It is the responsibility of the caller to manage the memory used by each
-	 * {@link Value} object, in particular calling {@link Value.free()} to free
-	 * the sector-aligned memory allocated on the native side by {@link
-	 * Value.allocate()}.
-	 * </p>
-	 *
-	 * @param keys The set of keys for the pairs to retrieve.
-	 * @param value An array of allocated {@link Value} objects to read each
-	 *	value into.
-	 * @throws FusionIOException If an error occurred while retrieving the data.
-	 */
-	public void get(Key[] keys, Value[] values) throws FusionIOException {
-		if (!this.store.isOpened()) {
-			throw new IllegalStateException("Key/value store is not opened!");
-		}
-
-		if (keys.length < 1 || keys.length > FUSION_IO_MAX_BATCH_SIZE ||
-			keys.length != values.length) {
-			throw new IllegalArgumentException("Invalid batch size!");
-		}
-
-		if (!FusionIOAPI.fio_kv_batch_get(this, keys, values)) {
-			throw new FusionIOException("Error reading key/value pair batch!");
-		}
+		value.getByteBuffer().limit(value.size());
+		return value;
 	}
 
 	/**
@@ -235,26 +213,6 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 
 		if (!FusionIOAPI.fio_kv_delete(this, key)) {
 			throw new FusionIOException("Error removing key/value pair!");
-		}
-	}
-
-	/**
-	 * Remove a set of key/value pairs in one batch operation.
-	 *
-	 * @param keys The keys of the pairs to remove.
-	 * @throws FusionIOException If the batch operation was not successful.
-	 */
-	public void remove(Key[] keys) throws FusionIOException {
-		if (!this.store.isOpened()) {
-			throw new IllegalStateException("Key/value store is not opened!");
-		}
-
-		if (keys.length < 1 || keys.length > FUSION_IO_MAX_BATCH_SIZE) {
-			throw new IllegalArgumentException("Invalid batch size!");
-		}
-
-		if (!FusionIOAPI.fio_kv_batch_delete(this, keys)) {
-			throw new FusionIOException("Error removing key/value pair batch!");
 		}
 	}
 
