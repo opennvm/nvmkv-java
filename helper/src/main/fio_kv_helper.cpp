@@ -136,6 +136,29 @@ bool fio_kv_destroy(fio_kv_store_t *store)
 }
 
 /**
+ * Returns information about the given key/value store.
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store.
+ * Returns:
+ *	A pointer to a populated nvm_kv_store_info_t structure containing metadata
+ *	information about the key/value store.
+ */
+nvm_kv_store_info_t *fio_kv_get_store_info(fio_kv_store_t *store)
+{
+	assert(store != NULL);
+
+	nvm_kv_store_info_t *info = (nvm_kv_store_info_t *)malloc(sizeof(nvm_kv_store_info_t));
+	int ret = nvm_kv_get_store_info(store->kv, info);
+	if (ret < 0) {
+		free(info);
+		return NULL;
+	}
+
+	return info;
+}
+
+/**
  * Create a new pool in the given key/value store.
  *
  * Args:
@@ -539,6 +562,15 @@ static jfieldID _store_field_path,
                 _store_field_fd,
                 _store_field_kv;
 
+static jclass _storeinfo_cls;
+static jmethodID _storeinfo_cstr;
+static jfieldID _storeinfo_field_version,
+                _storeinfo_field_num_pools,
+                _storeinfo_field_max_pools,
+                _storeinfo_field_expiry_mode,
+                _storeinfo_field_num_keys,
+                _storeinfo_field_free_space;
+
 static jclass _pool_cls;
 static jmethodID _pool_cstr;
 static jfieldID _pool_field_store,
@@ -578,6 +610,18 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1init_1jni_1ca
 	_store_field_path = env->GetFieldID(_store_cls, "path", "Ljava/lang/String;");
 	_store_field_fd   = env->GetFieldID(_store_cls, "fd", "I");
 	_store_field_kv   = env->GetFieldID(_store_cls, "kv", "J");
+
+	_cls = env->FindClass("com/turn/fusionio/StoreInfo");
+	assert(_cls != NULL);
+	_storeinfo_cls = (jclass) env->NewGlobalRef(_cls);
+	env->DeleteLocalRef(_cls);
+	_storeinfo_cstr = env->GetMethodID(_storeinfo_cls, "<init>", "(IIIIJJ)V");
+	_storeinfo_field_version     = env->GetFieldID(_storeinfo_cls, "version", "I");
+	_storeinfo_field_num_pools   = env->GetFieldID(_storeinfo_cls, "num_pools", "I");
+	_storeinfo_field_max_pools   = env->GetFieldID(_storeinfo_cls, "max_pools", "I");
+	_storeinfo_field_expiry_mode = env->GetFieldID(_storeinfo_cls, "expiry_mode", "I");
+	_storeinfo_field_num_keys    = env->GetFieldID(_storeinfo_cls, "num_keys", "J");
+	_storeinfo_field_free_space  = env->GetFieldID(_storeinfo_cls, "free_space", "J");
 
 	_cls = env->FindClass("com/turn/fusionio/Pool");
 	assert(_cls != NULL);
@@ -647,6 +691,19 @@ void __fio_kv_store_set_jobject(JNIEnv *env, fio_kv_store_t *store,
 
 	env->SetIntField(_store, _store_field_fd, store->fd);
 	env->SetLongField(_store, _store_field_kv, store->kv);
+}
+
+/**
+ * Converts a nvm_kv_store_info_t structure into a StoreInfo object.
+ */
+jobject __nvm_kv_store_info_to_jobject(JNIEnv *env, nvm_kv_store_info_t *info)
+{
+	assert(env != NULL);
+	assert(info != NULL);
+
+	return env->NewObject(_storeinfo_cls, _storeinfo_cstr,
+			info->version, info->num_pools, info->max_pools,
+			info->expiry_mode, info->num_keys, info->free_space);
 }
 
 /**
@@ -798,6 +855,20 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1destroy(
 }
 
 /**
+ * StoreInfo fio_kv_get_store_info(Store store);
+ */
+JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1store_1info
+	(JNIEnv *env, jclass cls, jobject _store)
+{
+	fio_kv_store_t *store = __jobject_to_fio_kv_store(env, _store);
+	nvm_kv_store_info_t *info = fio_kv_get_store_info(store);
+	jobject _info = info ? __nvm_kv_store_info_to_jobject(env, info) : NULL;
+	free(store);
+	free(info);
+	return _info;
+}
+
+/**
  * Pool fio_kv_create_pool(Store store);
  */
 JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1create_1pool
@@ -808,12 +879,10 @@ JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1create_1po
 	const char *tag = env->GetStringUTFChars(_tag, 0);
 	fio_kv_pool_t *pool = fio_kv_create_pool(store, (nvm_kv_pool_tag_t *)tag);
 	env->ReleaseStringUTFChars(_tag, tag);
-	if (!pool) {
-		free(store);
-		return NULL;
-	}
-
-	return env->NewObject(_pool_cls, _pool_cstr, _store, pool->id, _tag);
+	jobject _pool = pool ? env->NewObject(_pool_cls, _pool_cstr, _store, pool->id, _tag) : NULL;
+	free(store);
+	free(pool);
+	return _pool;
 }
 
 /**

@@ -58,9 +58,17 @@ public class KeyValueInfo {
 	 * API-controlled value but is free to the user of the API). */
 	public int gen_count;
 
+	/**
+	 * Empty constructor so we can pass a KeyValueInfo object created by the
+	 * JVM to the native API, which will simply update its field.
+	 */
 	public KeyValueInfo() {
 	}
 
+	/**
+	 * Full constructor for when the native API needs to create a fully
+	 * populated KeyValueInfo object for us.
+	 */
 	public KeyValueInfo(int pool_id, int key_len, int value_len, int expiry,
 		int gen_count) {
 		this.pool_id = pool_id;

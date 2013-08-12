@@ -78,11 +78,27 @@ public class FusionIOAPI {
 		return new Store(path);
 	}
 
+	/**
+	 * Expiry modes fore the FusionIO store.
+	 *
+	 * <p>
+	 * This enum matches the nvm_kv_expiry_t enum from the directKV API.
+	 * </p>
+	 *
+	 * @author mpetazzoni
+	 */
+	public enum ExpiryMode {
+		NO_EXPIRY,
+		ARBITRARY_EXPIRY,
+		GLOBAL_EXPIRY;
+	};
+
 	static native void fio_kv_init_jni_cache();
 
 	static native boolean fio_kv_open(Store store);
 	static native void fio_kv_close(Store store);
 	static native boolean fio_kv_destroy(Store store);
+	static native StoreInfo fio_kv_get_store_info(Store store);
 
 	static native Pool fio_kv_create_pool(Store store, String tag);
 

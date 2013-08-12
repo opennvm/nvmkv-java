@@ -106,6 +106,17 @@ void fio_kv_close(fio_kv_store_t *store);
 bool fio_kv_destroy(fio_kv_store_t *store);
 
 /**
+ * Returns information about the given key/value store.
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store.
+ * Returns:
+ *	A pointer to a populated nvm_kv_store_info_t structure containing metadata
+ *	information about the key/value store.
+ */
+nvm_kv_store_info_t *fio_kv_get_store_info(fio_kv_store_t *store);
+
+/**
  * Create a new pool in the given key/value store.
  *
  * Args:

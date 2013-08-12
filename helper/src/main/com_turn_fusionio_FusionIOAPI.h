@@ -41,6 +41,14 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1destroy
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_get_store_info
+ * Signature: (Lcom/turn/fusionio/Store;)Lcom/turn/fusionio/StoreInfo;
+ */
+JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1store_1info
+	(JNIEnv *env, jclass cls, jobject _store);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
  * Method:    fio_kv_create_pool
  * Signature: (Lcom/turn/fusionio/Store;Ljava/lang/String)Lcom/turn/fusionio/Pool;
  */

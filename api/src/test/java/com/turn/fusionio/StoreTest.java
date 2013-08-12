@@ -30,6 +30,8 @@
  */
 package com.turn.fusionio;
 
+import com.turn.fusionio.FusionIOAPI.ExpiryMode;
+
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -101,5 +103,17 @@ public class StoreTest {
 			: "FusionIO API should have remained closed";
 		assert this.store.fd == 0;
 		assert this.store.kv == 0;
+	}
+
+	public void testGetInfo() throws FusionIOException {
+		StoreInfo info = this.store.getInfo();
+		assert info != null;
+		assert info.getExpiryMode() == ExpiryMode.ARBITRARY_EXPIRY;
+		assert info.getNumPools() == 0;
+		assert info.getMaxPools() == 1048576;
+
+		this.store.getOrCreatePool("foo");
+		info = this.store.getInfo();
+		assert info.getNumPools() == 1;
 	}
 }

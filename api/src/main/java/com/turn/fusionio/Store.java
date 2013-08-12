@@ -30,8 +30,12 @@
  */
 package com.turn.fusionio;
 
+import com.turn.fusionio.FusionIOAPI.ExpiryMode;
+
 import java.io.Closeable;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Represents a FusionIO-based key/value store.
@@ -55,6 +59,7 @@ public class Store implements Closeable {
 	public final long kv;
 
 	private volatile boolean opened;
+	private Map<String, Pool> pools;
 
 	Store(String path) {
 		this.path = path;
@@ -62,6 +67,7 @@ public class Store implements Closeable {
 		this.kv = 0;
 
 		this.opened = false;
+		this.pools = this.getPools();
 	}
 
 	/**
@@ -144,36 +150,79 @@ public class Store implements Closeable {
 	}
 
 	/**
-	 * Get a pool by its ID.
+	 * Get an existing pool by its tag name or create a new one.
 	 *
 	 * <p>
-	 * Note that no checks are performed to validate the existence of the pool.
+	 * If a pool with the given tag name already exists no new pool is created
+	 * and the existing one will returned instead.
 	 * </p>
 	 *
-	 * @param poolId The ID of the pool to retrieve.
-	 * @return Returns the corresponding key/value store pool.
-	 */
-	public Pool getPool(int poolId) {
-		return new Pool(this, poolId, null);
-	}
-
-	/**
-	 * Create a new pool in this key/value store.
-	 *
 	 * @param tag The pool tag.
+	 * @return Returns the {@link Pool} object that gives access to the
+	 *	requested pool.
 	 * @throws FusionIOException If the pool could not be created because of an
 	 *	internal error.
 	 */
-	public synchronized Pool createPool(String tag) throws FusionIOException {
+	public synchronized Pool getOrCreatePool(String tag)
+			throws FusionIOException {
 		this.open();
 
-		Pool pool = FusionIOAPI.fio_kv_create_pool(this, tag);
-		if (pool == null) {
-			throw new FusionIOException("Error while creating a new pool!",
-				FusionIOAPI.fio_kv_get_last_error());
+		Pool pool = this.pools.get(tag);
+		if (pool != null) {
+			return pool;
 		}
 
-		return pool;
+		pool = FusionIOAPI.fio_kv_create_pool(this, tag);
+		if (pool != null) {
+			this.pools.put(tag, pool);
+			return pool;
+		}
+
+		throw new FusionIOException("Error while creating a new pool!",
+			FusionIOAPI.fio_kv_get_last_error());
+	}
+
+	/**
+	 * Get a pool by its ID.
+	 *
+	 * <p>
+	 * You should not normally not have to use this, especially once pool
+	 * discovery and pool tags are fully functional. But in the meantime, this
+	 * provides a shortcut to accessing a pre-existing pool by its ID.
+	 * </p>
+	 *
+	 * @param id The pool ID.
+	 * @return The {@link Pool} object that gives access to the requested pool.
+	 */
+	public Pool getPool(int id) {
+		return new Pool(this, id, null);
+	}
+
+	/**
+	 * Retrieves information about all pools on this FusionIO store.
+	 *
+	 * @return Returns a new map of pool tags to their corresponding {@link
+	 *	Pool} object.
+	 */
+	private Map<String, Pool> getPools() {
+		return new HashMap<String, Pool>();
+	}
+
+	/**
+	 * Returns a {@link StoreInfo} object containing metadata about this
+	 * FusionIO store.
+	 *
+	 * <p>
+	 * Note that this operation is synchronous and could take several minutes
+	 * to return.
+	 * </p>
+	 *
+	 * @return A populated {@link StoreInfo} object with metadata and
+	 * information about this key/value store.
+	 */
+	public StoreInfo getInfo() throws FusionIOException {
+		this.open();
+		return FusionIOAPI.fio_kv_get_store_info(this);
 	}
 
 	@Override
