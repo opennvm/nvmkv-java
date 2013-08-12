@@ -206,7 +206,7 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 * @throws FusionIOException If the pair could not be removed because of a
 	 *	low-level API error.
 	 */
-	public void remove(Key key) throws FusionIOException {
+	public void delete(Key key) throws FusionIOException {
 		if (!this.store.isOpened()) {
 			throw new IllegalStateException("Key/value store is not opened!");
 		}

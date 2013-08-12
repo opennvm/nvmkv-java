@@ -93,7 +93,7 @@ public class PoolTest {
 	@BeforeMethod
 	public void clean() throws FusionIOException {
 		for (int i=0; i<BATCH_SIZE; i++) {
-			this.pool.remove(TEST_KEYS[i]);
+			this.pool.delete(TEST_KEYS[i]);
 			TEST_READBACK[i]
 				.free()
 				.allocate(TEST_DATA.length);
@@ -131,7 +131,7 @@ public class PoolTest {
 		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
 
-		this.pool.remove(TEST_KEYS[0]);
+		this.pool.delete(TEST_KEYS[0]);
 		assert !this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should have been removed";
 	}
@@ -182,12 +182,12 @@ public class PoolTest {
 	}
 
 	public void testPoolPartitioning() throws FusionIOException {
-		Pool a = this.store.createPool("foo");
+		Pool a = this.store.getOrCreatePool("foo");
 		assert a != null;
 		assert a.id > 0;
 		assert "foo".equals(a.tag);
 
-		Pool b = this.store.createPool("bar");
+		Pool b = this.store.getOrCreatePool("bar");
 		assert b != null;
 		assert b.id > 0;
 		assert b.id != a.id;
