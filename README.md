@@ -63,6 +63,15 @@ To build everything. The build outputs will be placed in
 * `libfio_kv_helper-<version>.so`, the C shared library
 * `fiokv-java-api-<version>.jar`, the Java binding
 
+You can also build the API's Javadoc with:
+
+```
+$ cd api/
+$ mvn javadoc:javadoc
+```
+
+And the results will be available under `target/site/apidocs/`.
+
 
 Executing the test suite
 ------------------------

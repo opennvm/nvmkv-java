@@ -30,8 +30,6 @@
  */
 package com.turn.fusionio;
 
-import com.turn.fusionio.FusionIOAPI.ExpiryMode;
-
 import java.io.Closeable;
 import java.io.File;
 import java.util.HashMap;
@@ -67,7 +65,7 @@ public class Store implements Closeable {
 		this.kv = 0;
 
 		this.opened = false;
-		this.pools = this.getPools();
+		this.pools = new HashMap<String, Pool>();
 	}
 
 	/**
@@ -196,16 +194,6 @@ public class Store implements Closeable {
 	 */
 	public Pool getPool(int id) {
 		return new Pool(this, id, null);
-	}
-
-	/**
-	 * Retrieves information about all pools on this FusionIO store.
-	 *
-	 * @return Returns a new map of pool tags to their corresponding {@link
-	 *	Pool} object.
-	 */
-	private Map<String, Pool> getPools() {
-		return new HashMap<String, Pool>();
 	}
 
 	/**

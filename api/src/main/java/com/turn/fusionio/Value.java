@@ -183,8 +183,8 @@ public class Value {
 	 * <p>
 	 * This creates a new value for use with this API and requests
 	 * sector-aligned memory from the native side to hold the value's data.
-	 * After use, the {@link free()} method must be called on the {@link Value}
-	 * object to release the allocated memory.
+	 * After use, the {@link #free()} method must be called on the {@link
+	 * Value} object to release the allocated memory.
 	 * </p>
 	 *
 	 * @param size The size, in bytes, to allocate for.

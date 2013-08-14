@@ -75,8 +75,8 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 * <p>
 	 * It is the responsibility of the caller to manage the memory used by the
 	 * {@link Value} object that is returned, in particular calling {@link
-	 * Value.free()} to free the sector-aligned memory allocated on the native
-	 * side by {@link Value.allocate()}.
+	 * Value#free()} to free the sector-aligned memory allocated on the native
+	 * side by {@link Value#allocate(int)} or {@link Value#get(int)}.
 	 * </p>
 	 *
 	 * @param key The key of the pair to retrieve.
@@ -104,9 +104,9 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 *
 	 * <p>
 	 * It is the responsibility of the caller to manage the memory used by the
-	 * {@link Value} object, in particular calling {@link Value.free()} to free
+	 * {@link Value} object, in particular calling {@link Value#free()} to free
 	 * the sector-aligned memory allocated on the native side by {@link
-	 * Value.allocate()}.
+	 * Value#allocate(int)} or {@link Value#get(int)}.
 	 * </p>
 	 *
 	 * <p>
@@ -135,9 +135,9 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 *
 	 * <p>
 	 * It is the responsibility of the caller to manage the memory used by the
-	 * {@link Value} object, in particular calling {@link Value.free()} to free
+	 * {@link Value} object, in particular calling {@link Value#free()} to free
 	 * the sector-aligned memory allocated on the native side by {@link
-	 * Value.allocate()}.
+	 * Value#allocate(int)} or {@link Value#get(int)}.
 	 * </p>
 	 *
 	 * <p>
