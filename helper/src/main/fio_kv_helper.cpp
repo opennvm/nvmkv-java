@@ -240,8 +240,9 @@ int fio_kv_get_value_len(const fio_kv_pool_t *pool, const fio_kv_key_t *key)
 	assert(key->length >= 1 && key->length <= NVM_KV_MAX_KEY_SIZE);
 	assert(key->bytes != NULL);
 
-	return nvm_kv_get_val_len(pool->store->kv, pool->id,
+	int len = nvm_kv_get_val_len(pool->store->kv, pool->id,
 			key->bytes, key->length);
+	return len < NVM_KV_MAX_VALUE_SIZE ? len : NVM_KV_MAX_VALUE_SIZE;
 }
 
 /**
