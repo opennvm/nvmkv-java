@@ -246,6 +246,11 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 
 	@Override
 	public String toString() {
+		if (this.tag != null) {
+			return String.format("fusionio-pool(%s:%d:%s)",
+				this.store, this.id, this.tag);
+		}
+
 		return String.format("fusionio-pool(%s:%d)",
 			this.store, this.id);
 	}
