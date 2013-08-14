@@ -30,9 +30,17 @@ The `fiokv-java` library is made of two distinct components:
 
 * A helper library, `libfio_kv_helper`, written in C, that wraps around
   FusionIO's KV API while offering a more sensible interface that is easier to
-  manipulate and to expose in the Java world.
+  manipulate and to expose in the Java world via JNI.
 * A Java library, `fiokv-java-api` that exposes the native calls to the helper
-  library in a Java-esque way, with iterators, etc.
+  library in a Java-esque way, with iterators, helper functions, etc.
+
+
+License
+-------
+
+This Java binding to FusionIO's NVM KV API is released as open-source software
+under the terms of the BSD 3-clause license. See `COPYING` for more
+information.
 
 
 Dependencies
@@ -97,17 +105,24 @@ On the Java side, you can now simply access the library through a
 ```java
 import com.turn.fusionio.FusionIOAPI;
 
-/* FusionIO device, usually /dev/fctX */
-private static final String FUSION_IO_DEVICE = "/dev/fct0";
+// FusionIO device, usually /dev/fctX
+private static final String FUSION_IO_PATH = "/dev/fct0";
 
 /* ID of the key/value pairs pool to use on the device. 0 is the default pool
  * which doesn't require a pool creation. */
 private static final int FUSION_IO_POOL_ID = 0;
 
-Store fio = FusionIOAPI.get(FUSION_IO_DEVICE);
+// First, open the API on the desired device or directFS file.
+Store fio = FusionIOAPI.get(FUSION_IO_PATH);
 fio.open();
 
+// Second, retrieve a handle to the pool of your choice, here the default pool.
 Pool pool = fio.getPool(FUSION_IO_POOL_ID);
+
+/* Alternatively, you can also get or create pools by "tags", or pool names.
+ * Tags must be 16 characters or less and are unique. The default pool has no
+ * name. */
+pool = fio.getOrCreatePool("profiles");
 ```
 
 To write a key/value pair:
@@ -118,8 +133,7 @@ To write a key/value pair:
  * Key.createFrom(long); is a convenient way of creating keys from long integer
  * values. But keys can be anything up to 128 bytes long. You can also
  * simply create a Key from an existing byte[] with Key.createFrom(byte[]), or
- * empty for you to fill in with Key.get(size).
- */
+ * empty for you to fill in with Key.get(size). */
 Key key = Key.get(64); // creates a 64-byte key
 ByteBuffer keyData = key.getByteBuffer(); // put stuff in keyData
 
@@ -130,8 +144,7 @@ key = Key.createFrom(42);
  *
  * Creating a value allocates sector-aligned memory into which you can
  * place the data to be stored. You can easily access this memory through
- * a ByteBuffer.
- */
+ * a ByteBuffer. */
 Value value = Value.get(value_len);
 ByteBuffer data = value.getByteBuffer();
 
@@ -184,7 +197,7 @@ re-use its allocated buffer as much as possible.
 Authors
 -------
 
-* Maxime Petazzoni <mpetazzoni@turn.com> (Sr. Platform Engineer at Turn, Inc)
+* Maxime Petazzoni <mpetazzoni@turn.com> (Sr. Platform Engineer at Turn Inc)
   Original author, main developer and maintainer.
 * FusionIO's SDK team, for their answers, reviews and feedback.
 
@@ -192,20 +205,10 @@ Authors
 Caveats
 -------
 
-* The value length needs to be known in advance when reading a key/value pair.
-  Further improvements of the KV API by FusionIO should allow for the
-  `exists()` method to also return information about the key/value pair,
-  including the length of the value, without doing device I/O. This will allow
-  for the value length to be queried very efficiently before retrieving the
-  value itself.
-
 * Value memory buffers need to be sector-aligned. This imposes memory
   allocations to be performed at the user's request on the native side and then
   exposed as a ByteBuffer to the user, instead of being able to directly read
-  from a user-provided ByteBuffer. Again, improvements of the KV API by
-  FusionIO are planned to remove this limitation, allowing for more use cases
-  to be truly zero-copy, as well as not having to do manual memory management
-  of the allocated memory.
+  from a user-provided ByteBuffer.
 
 * Because of the requirement for sector-aligned memory, this memory is
   allocated from the native side and thus cannot be managed by the JVM's

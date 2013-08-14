@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2012 Turn, Inc.  All Rights Reserved.
+ * Copyright (C) 2012-2013 Turn Inc.  All Rights Reserved.
  * Proprietary and confidential.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -12,7 +12,7 @@
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
  *
- * - Neither the name Turn, Inc. nor the names of its contributors may be used
+ * - Neither the name Turn Inc. nor the names of its contributors may be used
  *   to endorse or promote products derived from this software without specific
  *   prior written permission.
  *
