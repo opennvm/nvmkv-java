@@ -30,22 +30,23 @@
  */
 package com.turn.fusionio;
 
+import com.turn.fusionio.FusionIOAPI.ExpiryMode;
+
 import java.io.Closeable;
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Represents a FusionIO-based key/value store.
  *
  * <p>
- * This class maps to the <tt>fio_kv_store_t</tt> structure in the helper
- * library.
+ * The public fields in this class map to the <tt>fio_kv_store_t</tt>
+ * structure in the helper library.
  * </p>
  *
  * @author mpetazzoni
  */
 public class Store implements Closeable {
+
+	public static final int FUSION_IO_MAX_POOLS = 1048576;
 
 	/** The path to the FusionIO device or directFS file. */
 	public final String path;
@@ -56,16 +57,32 @@ public class Store implements Closeable {
 	/** The KV store ID as understood by FusionIO's API. */
 	public final long kv;
 
-	private volatile boolean opened;
-	private Map<String, Pool> pools;
+	private final int version;
+	private final ExpiryMode expiryMode;
+	private final int expiryTime;
 
-	Store(String path) {
+	private volatile boolean opened;
+
+	/**
+	 * Instantiate a new FusionIO Store object.
+	 *
+	 * @param path The FusionIO device file or directFS file path.
+	 * @param version The user-defined FusionIO store version. Opening a
+	 *	previously created store with a different version number will fail.
+	 * @param expiryMode The key/value pair expiration policy.
+	 * @param expiryTime Only used for {@link ExpiryMode.GLOBAL_EXPIRY},
+	 *	defines the key/value pair TTL in seconds after insertion.
+	 */
+	Store(String path, int version, ExpiryMode expiryMode, int expiryTime) {
 		this.path = path;
+		this.version = version;
+		this.expiryMode = expiryMode;
+		this.expiryTime = expiryTime;
+
 		this.fd = 0;
 		this.kv = 0;
 
 		this.opened = false;
-		this.pools = new HashMap<String, Pool>();
 	}
 
 	/**
@@ -79,7 +96,8 @@ public class Store implements Closeable {
 		}
 
 		synchronized (this) {
-			if (!FusionIOAPI.fio_kv_open(this)) {
+			if (!FusionIOAPI.fio_kv_open(this, this.version, this.expiryMode,
+					this.expiryTime)) {
 				throw new FusionIOException(
 					"Could not open file or device for key/value API access!",
 					FusionIOAPI.fio_kv_get_last_error());
@@ -115,36 +133,39 @@ public class Store implements Closeable {
 	}
 
 	/**
-	 * Destroy the key/value store backing this {@link FusionIOAPI}.
+	 * Removes all key/value pairs from all pools, including the default pool.
 	 *
-	 * <p>
-	 * <b>Warning:</b> this method will destroy all data and all pools in this
-	 * key/value store! Use with care!
-	 * </p>
-	 *
-	 * The FusionIO store will be closed after the operation.
-	 *
-	 * @throws FusionIOException If an error occured while destroying the
-	 *	key/value store.
+	 * @throws FusionIOException In an error occured during removal.
 	 */
-	public synchronized void destroy() throws FusionIOException {
-		this.open();
-
-		// TODO(mpetazzoni): remove this check once nvm_kv_destroy()'s behavior
-		// for directFS-based key/value stores has been defined.
-		if (!this.path.startsWith("/dev")) {
-			this.close();
-			new File(this.path).delete();
-			return;
+	public void clear() throws FusionIOException {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
-		if (!FusionIOAPI.fio_kv_destroy(this)) {
-			throw new FusionIOException(
-				"Error while destroying the key/value store!",
+		if (!FusionIOAPI.fio_kv_delete_all(this)) {
+			throw new FusionIOException("Error removing all key/value pairs!",
 				FusionIOAPI.fio_kv_get_last_error());
 		}
+	}
 
-		this.close();
+	/**
+	 * Returns a {@link StoreInfo} object containing metadata about this
+	 * FusionIO store.
+	 *
+	 * <p>
+	 * Note that this operation is synchronous and could take several minutes
+	 * to return.
+	 * </p>
+	 *
+	 * @return A populated {@link StoreInfo} object with metadata and
+	 * information about this key/value store.
+	 */
+	public StoreInfo getInfo() throws FusionIOException {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
+		}
+
+		return FusionIOAPI.fio_kv_get_store_info(this);
 	}
 
 	/**
@@ -161,23 +182,23 @@ public class Store implements Closeable {
 	 * @throws FusionIOException If the pool could not be created because of an
 	 *	internal error.
 	 */
-	public synchronized Pool getOrCreatePool(String tag)
+	public Pool getOrCreatePool(String tag)
 			throws FusionIOException {
-		this.open();
-
-		Pool pool = this.pools.get(tag);
-		if (pool != null) {
-			return pool;
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
-		pool = FusionIOAPI.fio_kv_create_pool(this, tag);
-		if (pool != null) {
-			this.pools.put(tag, pool);
-			return pool;
+		if (tag != null && tag.length() > Pool.FUSION_IO_MAX_POOL_TAG_LENGTH) {
+			throw new FusionIOException("Invalid pool tag '" + tag + "'!");
 		}
 
-		throw new FusionIOException("Error while creating a new pool!",
-			FusionIOAPI.fio_kv_get_last_error());
+		Pool pool = FusionIOAPI.fio_kv_get_or_create_pool(this, tag);
+		if (pool == null) {
+			throw new FusionIOException("Error while creating a new pool!",
+				FusionIOAPI.fio_kv_get_last_error());
+		}
+
+		return pool;
 	}
 
 	/**
@@ -193,24 +214,79 @@ public class Store implements Closeable {
 	 * @return The {@link Pool} object that gives access to the requested pool.
 	 */
 	public Pool getPool(int id) {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
+		}
+
 		return new Pool(this, id, null);
 	}
 
 	/**
-	 * Returns a {@link StoreInfo} object containing metadata about this
-	 * FusionIO store.
+	 * Return an array of all pools in this key/value store.
+	 *
+	 * @throws FusionIOException
+	 */
+	public Pool[] getAllPools() throws FusionIOException {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
+		}
+
+		Pool[] pools = FusionIOAPI.fio_kv_get_all_pools(this);
+		if (pools == null) {
+			throw new FusionIOException("Error while gathering pool information!",
+				FusionIOAPI.fio_kv_get_last_error());
+		}
+
+		return pools;
+	}
+
+	/**
+	 * Delete a pool from the key/value store.
 	 *
 	 * <p>
-	 * Note that this operation is synchronous and could take several minutes
-	 * to return.
+	 * This is an asynchronous operation. All key/value pairs in the pool will
+	 * be removed. The default pool cannot be destroyed.
 	 * </p>
 	 *
-	 * @return A populated {@link StoreInfo} object with metadata and
-	 * information about this key/value store.
+	 * @throws FusionIOException If the operation failed.
+	 * @throws IllegalArgumentException If you try to remove the default pool.
 	 */
-	public StoreInfo getInfo() throws FusionIOException {
-		this.open();
-		return FusionIOAPI.fio_kv_get_store_info(this);
+	public void deletePool(Pool pool) throws FusionIOException {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
+		}
+
+		if (pool.id == Pool.FUSION_IO_DEFAULT_POOL_ID) {
+			throw new IllegalArgumentException("You cannot remove the default pool!");
+		}
+
+		if (!FusionIOAPI.fio_kv_delete_pool(pool)) {
+			throw new FusionIOException("Error while deleting pool " + this,
+				FusionIOAPI.fio_kv_get_last_error());
+		}
+	}
+
+	/**
+	 * Delete all user-created pools in this store.
+	 *
+	 * <p>
+	 * This is an asynchronous operation. Pools will no longer be accessible
+	 * after this method is called, but the number of pools reported in the
+	 * store information will only be decremented once pool deletion is
+	 * complete. The default pool remains untouched.
+	 * </p>
+	 *
+	 * @throws FusionIOException If the operation failed.
+	 */
+	public void deleteAllPools() throws FusionIOException {
+		if (!this.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
+		}
+
+		if (!FusionIOAPI.fio_kv_delete_all_pools(this)) {
+			throw new FusionIOException("Error while deleting pools!",
+				FusionIOAPI.fio_kv_get_last_error());
+		}
 	}
 
 	@Override

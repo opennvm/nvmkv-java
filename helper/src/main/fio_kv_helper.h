@@ -31,12 +31,11 @@
 #ifndef __FIO_KV_HELPER_H__
 #define __FIO_KV_HELPER_H__
 
-#include <nvm/kv.h>
+#include <nvm/nvm_kv.h>
 
-#define __FIO_KV_HELPER_USE_JNI__
-
-#define FIO_KV_API_VERSION          1
 #define FIO_SECTOR_ALIGNMENT        512
+#define FIO_KV_MAX_POOLS						NVM_KV_MAX_POOLS // 1024
+#define FIO_TAG_MAX_LENGTH					16
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +50,7 @@ typedef struct {
 typedef struct {
 	fio_kv_store_t *store;
 	int id;
-	nvm_kv_pool_tag_t *tag;
+	char tag[FIO_TAG_MAX_LENGTH];
 } fio_kv_pool_t;
 
 typedef struct {
@@ -76,11 +75,20 @@ typedef struct {
  * Args:
  *	 store (fio_kv_store_t *): An allocated fio_kv_store_t structure with the
  *		path member filled-in.
+ *	version (uint32_t): A version number, controlled by the user, which is
+ *		recorded in the device on the first time it is opened. Subsequent calls
+ *		to fio_kv_open() validate this version number and return an error if the
+ *		version mismatches.
+ *	expiry_type (nvm_kv_expiry_t): The expiry type (disabled, arbitrary or
+ *		global).
+ *	expiry_time (uint32_t): The expiration time for global expiry mode, in
+ *		seconds since the key/value pair insertion.
  * Returns:
  *	 Returns true if the operation was successful (and the fd and kv fields of
  *	 the fio_kv_store_t structure are filled in), false otherwise.
  */
-bool fio_kv_open(fio_kv_store_t *store);
+bool fio_kv_open(fio_kv_store_t *store, const uint32_t version,
+		const nvm_kv_expiry_t expiry_type, const uint32_t expiry_time);
 
 /**
  * Close a key/value store.
@@ -94,18 +102,6 @@ bool fio_kv_open(fio_kv_store_t *store);
 void fio_kv_close(fio_kv_store_t *store);
 
 /**
- * Destroy a key/value store.
- *
- * WARNING: this method is data destructive. All pools on the given store, as
- * well as all the keys and values they contain will be destroyed and not
- * recoverable. Use with care!
- *
- * Args:
- *	store (fio_kv_store_t *): The key/value store to destroy.
- */
-bool fio_kv_destroy(fio_kv_store_t *store);
-
-/**
  * Returns information about the given key/value store.
  *
  * Args:
@@ -117,17 +113,31 @@ bool fio_kv_destroy(fio_kv_store_t *store);
 nvm_kv_store_info_t *fio_kv_get_store_info(fio_kv_store_t *store);
 
 /**
- * Create a new pool in the given key/value store.
+ * Get or create a new pool in the given key/value store.
  *
  * Args:
  *	store (fio_kv_store_t *): The key/value store.
- *	tag (nvm_kv_pool_tag_t *): The pool name tag.
+ *	tag (const char *): The pool name tag.
  * Returns:
  *	Returns a newly allocated fio_kv_pool_t structure describing the created
  *	pool.
  */
-fio_kv_pool_t *fio_kv_create_pool(fio_kv_store_t *store,
-		nvm_kv_pool_tag_t *tag);
+fio_kv_pool_t *fio_kv_get_or_create_pool(fio_kv_store_t *store,
+		const char *tag);
+
+/**
+ * Get pool metadata information for up to the requested number of pools.
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store.
+ *	pool_count (int *): A pointer to an integer that will contain the actual
+ *		number of pools we got metadata about.
+ * Returns:
+ *	An array of initialized and filled-in fio_kv_pool_t structures, with the
+ *	pool IDs and pool tags for each pool up to the number of requested pools.
+ */
+fio_kv_pool_t *fio_kv_get_all_pools(fio_kv_store_t *store,
+		uint32_t *pool_count);
 
 /**
  * Allocate sector-aligned memory to hold the given number of bytes.
@@ -162,6 +172,18 @@ void fio_kv_free_value(fio_kv_value_t *value);
  *	The value length, rounded up to the next sector.
  */
 int fio_kv_get_value_len(const fio_kv_pool_t *pool, const fio_kv_key_t *key);
+
+/**
+ * Retrieve a key/value pair's exact metadata from the device.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The key/value pool.
+ *	key (fio_kv_key_t *): The key.
+ * Returns:
+ *	A pointer to an allocated and filled-in nvm_kv_key_info_t structure.
+ */
+nvm_kv_key_info_t *fio_kv_get_key_info(const fio_kv_pool_t *pool,
+		const fio_kv_key_t *key);
 
 /**
  * Retrieve the value associated with a given key in a key/value pool.
@@ -207,10 +229,10 @@ int fio_kv_put(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
  *	  structure to fill with key/value pair information if it exists in the
  *	  key/value pool.
  * Returns:
- *	Returns 1 if a mapping for the given key exists in the key/value pool, 0
- *	  if it doesn't or -1 if an error occured.
+ *	Returns true if a mapping for the given key exists in the key/value pool,
+ *		false if it doesn't or if an error occured.
  */
-int fio_kv_exists(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
+bool fio_kv_exists(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
 		nvm_kv_key_info_t *info);
 
 /**
@@ -223,6 +245,45 @@ int fio_kv_exists(const fio_kv_pool_t *pool, const fio_kv_key_t *key,
  *	 Returns true if the mapping was successfuly removed, false otherwise.
  */
 bool fio_kv_delete(const fio_kv_pool_t *pool, const fio_kv_key_t *key);
+
+/**
+ * Removes all key/value pairs from all pools.
+ *
+ * All key/value pairs from all pools, including the default pools, are
+ * removed. Pools are not deleted (use fio_kv_delete_pool() or
+ * fio_kv_delete_all_pools() for that).
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store.
+ * Returns:
+ *	Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_delete_all(const fio_kv_store_t *store);
+
+/**
+ * Delete the given pool.
+ *
+ * Pool deletion is asynchronous. The pool will become unusable immediately but
+ * the number of pools reported by fio_kv_get_store_info() will only be
+ * decremented when the pool deletion is complete. Removing a pool removes all
+ * the key/value pairs it contained.
+ *
+ * Args:
+ *	pool (fio_kv_pool_t *): The pool to delete.
+ * Returns:
+ *	Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_delete_pool(const fio_kv_pool_t *pool);
+
+/**
+ * Delete all user-created pools from the key/value store.
+ *
+ * Args:
+ *	store (fio_kv_store_t *): The key/value store.
+ * Returns:
+ *	Returns true if the operation was successful, false otherwise.
+ */
+bool fio_kv_delete_all_pools(const fio_kv_store_t *store);
 
 /**
  * Insert (or replace) a set of key/value pairs in one batch operation.

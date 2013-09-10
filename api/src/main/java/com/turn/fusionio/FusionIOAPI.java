@@ -71,11 +71,17 @@ public class FusionIOAPI {
 	 * device or directFS file as the backing storage.
 	 *
 	 * @param path The FusionIO device file or directFS file path.
+	 * @param version The user-defined FusionIO store version. Opening a
+	 *	previously created store with a different version number will fail.
+	 * @param expiryMode The key/value pair expiration policy.
+	 * @param expiryTime Only used for {@link ExpiryMode.GLOBAL_EXPIRY},
+	 *	defines the key/value pair TTL in seconds after insertion.
 	 * @return Returns an initialized {@link Store} instance usable for native
 	 *	FusionIO key/value store operations.
 	 */
-	public static Store get(String path) {
-		return new Store(path);
+	public static Store get(String path, int version, ExpiryMode expiryMode,
+			int expiryTime) {
+		return new Store(path, version, expiryMode, expiryTime);
 	}
 
 	/**
@@ -95,22 +101,27 @@ public class FusionIOAPI {
 
 	static native void fio_kv_init_jni_cache();
 
-	static native boolean fio_kv_open(Store store);
+	static native boolean fio_kv_open(Store store, int version,
+		ExpiryMode expiryMode, int expiryTime);
 	static native void fio_kv_close(Store store);
-	static native boolean fio_kv_destroy(Store store);
 	static native StoreInfo fio_kv_get_store_info(Store store);
 
-	static native Pool fio_kv_create_pool(Store store, String tag);
+	static native Pool fio_kv_get_or_create_pool(Store store, String tag);
+	static native Pool[] fio_kv_get_all_pools(Store store);
+	static native boolean fio_kv_delete_pool(Pool pool);
+	static native boolean fio_kv_delete_all_pools(Store store);
 
 	static native ByteBuffer fio_kv_alloc(int length);
 	static native void fio_kv_free_value(Value value);
 
 	static native int fio_kv_get_value_len(Pool pool, Key key);
+	static native KeyValueInfo fio_kv_get_key_info(Pool pool, Key key);
 
 	static native int fio_kv_get(Pool pool, Key key, Value value);
 	static native int fio_kv_put(Pool pool, Key key, Value value);
-	static native int fio_kv_exists(Pool pool, Key key, KeyValueInfo info);
+	static native boolean fio_kv_exists(Pool pool, Key key, KeyValueInfo info);
 	static native boolean fio_kv_delete(Pool pool, Key key);
+	static native boolean fio_kv_delete_all(Store store);
 
 	static native boolean fio_kv_batch_put(Pool pool, Key[] keys, Value[] values);
 

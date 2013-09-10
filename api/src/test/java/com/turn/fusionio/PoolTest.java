@@ -30,11 +30,17 @@
  */
 package com.turn.fusionio;
 
+import com.turn.fusionio.FusionIOAPI.ExpiryMode;
+
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.testng.Assert;
+import org.testng.ITestResult;
 import org.testng.annotations.AfterClass;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -48,10 +54,10 @@ import org.testng.annotations.Test;
 public class PoolTest {
 
 	private static final String DEVICE_NAME = "/dev/fioa";
-	private static final int POOL_ID = 0;
 
 	private static final int BATCH_SIZE = 10;
 	private static final int BIG_VALUE_SIZE = 4096;
+	private static final int EXPIRY_SECONDS = 2;
 
 	private static final Key[] TEST_KEYS = new Key[BATCH_SIZE];
 	private static final Value[] TEST_VALUES = new Value[BATCH_SIZE];
@@ -69,7 +75,7 @@ public class PoolTest {
 	private Pool pool = null;
 
 	@BeforeClass
-	public void setUp() throws FusionIOException {
+	public void setUpClass() throws FusionIOException, InterruptedException {
 		for (int i=0; i<BATCH_SIZE; i++) {
 			TEST_KEYS[i] = Key.createFrom(i);
 			TEST_VALUES[i] = Value.get(TEST_DATA.length);
@@ -78,20 +84,29 @@ public class PoolTest {
 			TEST_READBACK[i] = Value.get(TEST_DATA.length);
 		}
 
-		this.store = new Store(DEVICE_NAME);
-		this.store.destroy();
-		assert !this.store.isOpened()
-			: "The key/value store should be closed after destroy!";
+		this.store = FusionIOAPI.get(DEVICE_NAME, 0,
+			StoreTest.TESTING_EXPIRY_MODE,
+			StoreTest.TESTING_EXPIRY_SECONDS);
+		// Need to wait a bit for the device permissions to be set before
+		// opening it.
+		Thread.sleep(150);
 
-		// Need to wait a bit for permission reset on device file.
-		try { Thread.sleep(250); } catch (InterruptedException ie) { }
-
+		System.out.println("open()...");
 		this.store.open();
-		this.pool = this.store.getPool(POOL_ID);
+		assert this.store.isOpened()
+			: "FusionIO API was not opened as expected";
+		System.out.println("getInfo()...");
+		assert this.store.getInfo().getExpiryMode() == ExpiryMode.GLOBAL_EXPIRY
+			: "Expiry mode is not what expected. " +
+				"Did you format the device before running the tests?";
+		System.out.println("getOrCreatePool()...");
+		this.pool = this.store.getOrCreatePool("test");
+		System.out.println("init complete");
 	}
 
 	@BeforeMethod
-	public void clean() throws FusionIOException {
+	public void setUp(Method m) throws FusionIOException {
+		System.out.printf("%s.%s():\n", m.getDeclaringClass().getName(), m.getName());
 		for (int i=0; i<BATCH_SIZE; i++) {
 			this.pool.delete(TEST_KEYS[i]);
 			TEST_READBACK[i]
@@ -100,12 +115,15 @@ public class PoolTest {
 		}
 	}
 
+	@AfterMethod
+	public void after(ITestResult tr) {
+		System.out.printf("%s(): done (%d)\n", tr.getName(), tr.getStatus());
+		System.out.flush();
+	}
+
 	@AfterClass
 	public void tearDown() throws FusionIOException {
-		for (int i=0; i<BATCH_SIZE; i++) {
-			TEST_VALUES[i].free();
-			TEST_READBACK[i].free();
-		}
+		this.store.deleteAllPools();
 		this.store.close();
 	}
 
@@ -124,6 +142,24 @@ public class PoolTest {
 		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
 		assert this.pool.exists(TEST_KEYS[0])
 			: "Key/value mapping should exist";
+	}
+
+	public void testGetKeyValueInfo() throws FusionIOException {
+		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
+		KeyValueInfo info = this.pool.getKeyValueInfo(TEST_KEYS[0]);
+		assert info != null;
+		assert info.pool_id == this.pool.id;
+		assert info.key_len == TEST_KEYS[0].size();
+		assert info.value_len == TEST_VALUES[0].size();
+	}
+
+	public void testExpiry() throws FusionIOException, InterruptedException {
+		this.pool.put(TEST_KEYS[0], TEST_VALUES[0]);
+		assert this.pool.exists(TEST_KEYS[0])
+			: "Key/value mapping should exist";
+		Thread.sleep(TimeUnit.SECONDS.toMillis(EXPIRY_SECONDS+1));
+		assert !this.pool.exists(TEST_KEYS[0])
+			: "Key/value mapping should no longer exist";
 	}
 
 	public void testRemove() throws FusionIOException {

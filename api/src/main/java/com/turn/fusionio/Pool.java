@@ -46,6 +46,11 @@ import java.util.Map;
 public class Pool implements Iterable<Map.Entry<Key, Value>> {
 
 	/**
+	 * The default pool's ID.
+	 */
+	public static final int FUSION_IO_DEFAULT_POOL_ID = 0;
+
+	/**
 	 * Maximum batch size.
 	 *
 	 * <p>
@@ -53,6 +58,16 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 	 * </p>
 	 */
 	public static final int FUSION_IO_MAX_BATCH_SIZE = 16;
+
+	/**
+	 * Maximum pool tag length.
+	 *
+	 * <p>
+	 * Maximum pool tag length in characters. Set to 15 to allow space for the
+	 * NUL char on the native side.
+	 * </p>
+	 */
+	public static final int FUSION_IO_MAX_POOL_TAG_LENGTH = 15;
 
 	/** The FusionIO store this pool is a part of. */
 	public final Store store;
@@ -190,13 +205,28 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
-		int ret = FusionIOAPI.fio_kv_exists(this, key, info);
-		if (ret < 0) {
-			throw new FusionIOException(
-				"Error while verifying key/value pair presence!");
+		return FusionIOAPI.fio_kv_exists(this, key, info);
+	}
+
+	/**
+	 * Return a filled-in {@link KeyValueInfo} object containing the metadata
+	 * about a key/value pair in this pool.
+	 *
+	 * <p>
+	 * The operation is done without any I/O on the underlying device.
+	 * </p>
+	 *
+	 * @param key The key as a {@link Key} object.
+	 * @return Returns the {@link KeyValueInfo} object, or <em>null</em> if the
+	 *	key/value pair doesn't exist or if an error occured while retreiving
+	 *	the metadata.
+	 */
+	public KeyValueInfo getKeyValueInfo(Key key) throws FusionIOException {
+		if (!this.store.isOpened()) {
+			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
-		return ret == 1;
+		return FusionIOAPI.fio_kv_get_key_info(this, key);
 	}
 
 	/**

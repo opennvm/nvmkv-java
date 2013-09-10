@@ -18,10 +18,10 @@ JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1init_1jni_1ca
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
  * Method:    fio_kv_open
- * Signature: (Lcom/turn/fusionio/Store;)Z
+ * Signature: (Lcom/turn/fusionio/Store;ILcom/turn/fusionio/FusionIOAPI$ExpiryMode;I)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1open
-  (JNIEnv *, jclass, jobject);
+  (JNIEnv *, jclass, jobject, jint, jobject, jint);
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
@@ -29,14 +29,6 @@ JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1open
  * Signature: (Lcom/turn/fusionio/Store;)V
  */
 JNIEXPORT void JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1close
-  (JNIEnv *, jclass, jobject);
-
-/*
- * Class:     com_turn_fusionio_FusionIOAPI
- * Method:    fio_kv_destroy
- * Signature: (Lcom/turn/fusionio/Store;)Z
- */
-JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1destroy
   (JNIEnv *, jclass, jobject);
 
 /*
@@ -49,11 +41,35 @@ JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1store
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
- * Method:    fio_kv_create_pool
+ * Method:    fio_kv_get_or_create_pool
  * Signature: (Lcom/turn/fusionio/Store;Ljava/lang/String)Lcom/turn/fusionio/Pool;
  */
-JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1create_1pool
+JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1or_1create_1pool
 	(JNIEnv *, jclass, jobject, jstring);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_get_all_pools
+ * Signature: (Lcom/turn/fusionio/Store;)[Lcom/turn/fusionio/Pool;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1all_1pools
+	(JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_delete_pool
+ * Signature: (Lcom/turn/fusionio/Pool;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1delete_1pool
+	(JNIEnv *, jclass, jobject);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_delete_all_pools
+ * Signature: (Lcom/turn/fusionio/Store;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1delete_1all_1pools
+	(JNIEnv *, jclass, jobject);
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
@@ -81,6 +97,14 @@ JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1value_1l
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_get_key_info
+ * Signature: (Lcom/turn/fusionio/Pool;Lcom/turn/fusionio/Key;)I
+ */
+JNIEXPORT jobject JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1get_1key_1info
+	(JNIEnv *env, jclass cls, jobject _pool, jobject _key);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
  * Method:    fio_kv_get
  * Signature: (Lcom/turn/fusionio/Pool;Lcom/turn/fusionio/Key;Lcom/turn/fusionio/Value;)I
  */
@@ -98,9 +122,9 @@ JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1put
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
  * Method:    fio_kv_exists
- * Signature: (Lcom/turn/fusionio/Pool;Lcom/turn/fusionio/Key;Lcom/turn/fusionio/KeyValueInfo;)I
+ * Signature: (Lcom/turn/fusionio/Pool;Lcom/turn/fusionio/Key;Lcom/turn/fusionio/KeyValueInfo;)Z
  */
-JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1exists
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1exists
   (JNIEnv *, jclass, jobject, jobject, jobject);
 
 /*
@@ -110,6 +134,14 @@ JNIEXPORT jint JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1exists
  */
 JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1delete
   (JNIEnv *, jclass, jobject, jobject);
+
+/*
+ * Class:     com_turn_fusionio_FusionIOAPI
+ * Method:    fio_kv_delete_all
+ * Signature: (Lcom/turn/fusionio/Store;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_turn_fusionio_FusionIOAPI_fio_1kv_1delete_1all
+  (JNIEnv *, jclass, jobject);
 
 /*
  * Class:     com_turn_fusionio_FusionIOAPI
