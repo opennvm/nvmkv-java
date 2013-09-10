@@ -37,7 +37,7 @@
   <url>http://turn.github.com/fiokv-java</url>
   <groupId>com.turn.fusionio</groupId>
   <artifactId>fiokv-java</artifactId>
-  <version>0.6.0-1</version>
+  <version>0.7.0</version>
   <packaging>pom</packaging>
 
   <organization>
