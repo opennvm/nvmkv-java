@@ -210,4 +210,9 @@ public class StoreTest {
 		assert test.equals(pools[0]);
 		assert foo.equals(pools[1]);
 	}
+
+	@Test(expectedExceptions=IllegalArgumentException.class)
+	public void testConstructorWrongExpiryTime() {
+		new Store(DEVICE_NAME, 0, ExpiryMode.GLOBAL_EXPIRY, 0);
+	}
 }

@@ -74,6 +74,13 @@ public class Store implements Closeable {
 	 *	defines the key/value pair TTL in seconds after insertion.
 	 */
 	Store(String path, int version, ExpiryMode expiryMode, int expiryTime) {
+		if (path == null ||
+			version < 0 ||
+			expiryMode == null ||
+			(expiryMode == ExpiryMode.GLOBAL_EXPIRY && expiryTime <= 0)) {
+			throw new IllegalArgumentException();
+		}
+
 		this.path = path;
 		this.version = version;
 		this.expiryMode = expiryMode;
