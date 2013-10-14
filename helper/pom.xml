@@ -76,9 +76,9 @@
             <compilerStartOption>${fio_kv_helper.gcc.extraargs}</compilerStartOption>
           </compilerStartOptions>
 
-          <linkerStartOptions>
-            <linkerStartOption>-shared -fPIC -lrt -ldl -L/usr/lib/nvm -lnvmkv -lnvm-primitives -L/usr/lib/fio -lvsl</linkerStartOption>
-          </linkerStartOptions>
+          <linkerEndOptions>
+            <linkerEndOption>-shared -fPIC -lrt -ldl -L/usr/lib/nvm -lnvmkv -lnvm-primitives -L/usr/lib/fio -lvsl</linkerEndOption>
+          </linkerEndOptions>
         </configuration>
       </plugin>
     </plugins>
