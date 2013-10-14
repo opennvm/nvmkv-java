@@ -105,7 +105,7 @@ public class Value {
 			throw new IllegalStateException("Value is already allocated!");
 		}
 
-		if (size <= 0) {
+		if (size < 0) {
 			throw new IllegalArgumentException("Invalid value size!");
 		}
 
@@ -130,9 +130,10 @@ public class Value {
 			throw new IllegalStateException("Value is not allocated!");
 		}
 
-		if (size > this.data.capacity()) {
+		if (size < 0 || size > this.data.capacity()) {
 			throw new IllegalArgumentException(
-				"Cannot force to a greater size than allocated!");
+				"Cannot force to a negative size or a size greater " +
+				"than allocated!");
 		}
 
 		this.data.limit(size);

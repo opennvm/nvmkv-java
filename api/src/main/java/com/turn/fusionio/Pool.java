@@ -104,10 +104,15 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 			throw new IllegalStateException("Key/value store is not opened!");
 		}
 
-		Value value = Value.get(
-			FusionIOAPI.fio_kv_get_value_len(this, key));
+		int size = FusionIOAPI.fio_kv_get_value_len(this, key);
+		if (size < 0) {
+			throw new FusionIOException("Error calculating required value size!");
+		}
+
+		Value value = Value.get(size);
 		if (FusionIOAPI.fio_kv_get(this, key, value) < 0) {
-			throw new FusionIOException("Error reading key/value pair!");
+			throw new FusionIOException("Error reading key/value pair!",
+				FusionIOAPI.fio_kv_get_last_error());
 		}
 
 		value.getByteBuffer().limit(value.size());
@@ -140,7 +145,8 @@ public class Pool implements Iterable<Map.Entry<Key, Value>> {
 		}
 
 		if (FusionIOAPI.fio_kv_put(this, key, value) != value.size()) {
-			throw new FusionIOException("Error writing key/value pair!");
+			throw new FusionIOException("Error writing key/value pair!",
+				FusionIOAPI.fio_kv_get_last_error());
 		}
 	}
 
