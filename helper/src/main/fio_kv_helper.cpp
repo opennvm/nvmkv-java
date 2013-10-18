@@ -290,10 +290,10 @@ void *fio_kv_alloc(const uint32_t length)
 	void *p;
 
 	if (posix_memalign(&p, FIO_SECTOR_ALIGNMENT,
-			length + FIO_SECTOR_ALIGNMENT -
+				length + FIO_SECTOR_ALIGNMENT -
 				(length % FIO_SECTOR_ALIGNMENT))) {
-        return NULL;
-    }
+		return NULL;
+	}
 
 	return p;
 }

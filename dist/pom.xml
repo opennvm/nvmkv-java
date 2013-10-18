@@ -35,27 +35,27 @@
 
   <parent>
     <groupId>com.turn.fusionio</groupId>
-    <artifactId>fiokv-java</artifactId>
-    <version>0.7.0</version>
+    <artifactId>nvmkv-java</artifactId>
+    <version>0.7.0-1</version>
   </parent>
 
-  <name>FusionIO KV API Java binding distribution</name>
-  <url>http://turn.github.com/fiokv-java</url>
-  <artifactId>fiokv-java-dist</artifactId>
+  <name>FusionIO NVMKV API Java binding distribution</name>
+  <url>http://turn.github.com/nvmkv-java</url>
+  <artifactId>nvmkv-java-dist</artifactId>
   <packaging>pom</packaging>
 
   <dependencies>
      <dependency>
        <groupId>com.turn.fusionio</groupId>
        <artifactId>libfio_kv_helper</artifactId>
-	   <version>0.7.0</version>
+	   <version>0.7.0-1</version>
        <type>so</type>
      </dependency>
 
      <dependency>
        <groupId>com.turn.fusionio</groupId>
-       <artifactId>fiokv-java-api</artifactId>
-       <version>0.7.0</version>
+       <artifactId>nvmkv-java-api</artifactId>
+       <version>0.7.0-1</version>
        <type>jar</type>
      </dependency>
   </dependencies>

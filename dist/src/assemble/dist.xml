@@ -45,7 +45,7 @@
       </binaries>
       <includes>
         <include>com.turn.fusionio:libfio_kv_helper</include>
-        <include>com.turn.fusionio:fiokv-java-api</include>
+        <include>com.turn.fusionio:nvmkv-java-api</include>
       </includes>
     </moduleSet>
   </moduleSets>

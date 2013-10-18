@@ -33,11 +33,11 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <name>FusionIO KV API Java binding</name>
-  <url>http://turn.github.com/fiokv-java</url>
+  <name>FusionIO NVMKV API Java binding</name>
+  <url>http://turn.github.io/nvmkv-java</url>
   <groupId>com.turn.fusionio</groupId>
-  <artifactId>fiokv-java</artifactId>
-  <version>0.7.0</version>
+  <artifactId>nvmkv-java</artifactId>
+  <version>0.7.0-1</version>
   <packaging>pom</packaging>
 
   <organization>
@@ -46,8 +46,8 @@
   </organization>
 
   <scm>
-    <connection>scm:git:git://github.com/turn/fiokv-java.git</connection>
-    <url>http://github.com/turn/fiokv-java</url>
+    <connection>scm:git:git://github.com/opennvm/nvmkv-java.git</connection>
+    <url>http://github.com/opennvm/nvmkv-java</url>
   </scm>
 
   <licenses>
@@ -59,7 +59,7 @@
 
   <issueManagement>
     <system>GitHub</system>
-    <url>http://github.com/turn/fiokv-java/issues</url>
+    <url>http://github.com/opennvm/nvmkv-java/issues</url>
   </issueManagement>
 
   <developers>

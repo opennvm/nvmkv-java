@@ -4,7 +4,7 @@ Java binding for FusionIO's key/value store API
 Description
 -----------
 
-`fiokv-java` is a Java language binding for FusionIO's key/value store API for
+`nvmkv-java` is a Java language binding for FusionIO's key/value store API for
 FusionIO flash devices. FusionIO (http://www.fusionio.com) commercializes
 PCI-Express based flash storage devices such as the ioDrive; these devices can
 work in two modes, either emulating a block device and putting a file-system on
@@ -26,19 +26,19 @@ store API.
 Architecture
 ------------
 
-The `fiokv-java` library is made of two distinct components:
+The `nvmkv-java` library is made of two distinct components:
 
 * A helper library, `libfio_kv_helper`, written in C, that wraps around
   FusionIO's KV API while offering a more sensible interface that is easier to
   manipulate and to expose in the Java world via JNI.
-* A Java library, `fiokv-java-api` that exposes the native calls to the helper
+* A Java library, `nvmkv-java-api` that exposes the native calls to the helper
   library in a Java-esque way, with iterators, helper functions, etc.
 
 
 License
 -------
 
-This Java binding to FusionIO's NVM KV API is released as open-source software
+This Java binding to FusionIO's NVMKV API is released as open-source software
 under the terms of the BSD 3-clause license. See `COPYING` for more
 information.
 
@@ -46,9 +46,10 @@ information.
 Dependencies
 ------------
 
-`fiokv-java`'s helper library depends on FusionIO's `vsldpexp` library and
-their KV API header files. These are _not_ provided as part of this package nor
-are these dependencies managed by the Maven build.
+`nvmkv-java`'s helper library depends on FusionIO's `vsl`, `nvmkv` and
+`nvm-primitives` libraries and on the NVMKV API header files. These are _not_
+provided as part of this package nor are these dependencies managed by the
+Maven build.
 
 The helper library depends on JNI (Java Native Interface), which means you need
 to build the Maven project with a JDK instead of a JRE. Both `jni.h` and
@@ -66,10 +67,10 @@ $ mvn
 ```
 
 To build everything. The build outputs will be placed in
-`dist/target/fiokv-java-dist-<version>-bin/`:
+`dist/target/nvmkv-java-dist-<version>-bin/`:
 
 * `libfio_kv_helper-<version>.so`, the C shared library
-* `fiokv-java-api-<version>.jar`, the Java binding
+* `nvmkv-java-api-<version>.jar`, the Java binding
 
 You can also build the API's Javadoc with:
 
@@ -113,7 +114,11 @@ private static final String FUSION_IO_PATH = "/dev/fct0";
 private static final int FUSION_IO_POOL_ID = 0;
 
 // First, open the API on the desired device or directFS file.
-Store fio = FusionIOAPI.get(FUSION_IO_PATH);
+Store fio = FusionIOAPI.get(FUSION_IO_PATH,       // Path to the device.
+                            0,                    // Store version number.
+                            ExpiryMode.NO_EXPIRY, // The store expiry mode.
+                            0);                   // The expiry TTL, if global
+                                                  // expiry is used.
 fio.open();
 
 // Second, retrieve a handle to the pool of your choice, here the default pool.
