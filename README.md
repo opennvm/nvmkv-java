@@ -202,7 +202,7 @@ re-use its allocated buffer as much as possible.
 Authors
 -------
 
-* Maxime Petazzoni <mpetazzoni@turn.com> (Sr. Platform Engineer at Turn Inc)
+* Maxime Petazzoni <<maxime.petazzoni@bulix.org>> (Software Engineer at SignalFuse, Inc)
   Original author, main developer and maintainer.
 * FusionIO's SDK team, for their answers, reviews and feedback.
 
