@@ -199,13 +199,16 @@ anyway, so here again it is recommended to use a single `Value` object and
 re-use its allocated buffer as much as possible.
 
 
-Authors
--------
+Authors and contact
+-------------------
 
 * Maxime Petazzoni <<maxime.petazzoni@bulix.org>> (Software Engineer at SignalFuse, Inc)
   Original author, main developer and maintainer.
 * FusionIO's SDK team, for their answers, reviews and feedback.
 
+The team uses a Google Group for discussions. If you're interested on want to
+ask a question, head over to https://groups.google.com/forum/#!forum/opennvm
+and request to join the group!
 
 Caveats
 -------
@@ -221,6 +224,3 @@ Caveats
   free this memory by calling `free()` on a `Value` object before loosing the
   reference to it. This is the only way by which the memory used by these
   sector-aligned buffers can be recovered.
-
-* Expiry modes are currently not supported by this binding (global expiry isn't
-  yet supported by directKV anyway).
